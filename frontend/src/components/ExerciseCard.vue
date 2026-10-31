@@ -58,16 +58,16 @@ function applyToAll() {
 </script>
 
 <template>
-  <article class="rounded-2xl bg-zinc-900 p-3" :class="{ 'ring-1 ring-lime-400/40': allDone }">
+  <article class="rounded-2xl bg-surface p-3" :class="{ 'ring-1 ring-accent/40': allDone }">
     <header class="mb-2 flex items-center gap-2">
-      <span class="drag-handle -ml-1 cursor-grab touch-none px-1 text-zinc-600 select-none" aria-label="Arrastar">⋮⋮</span>
-      <RouterLink :to="`/exercicio/${exercise.id}`" class="min-w-0 flex-1 truncate font-semibold text-zinc-100">
+      <span class="drag-handle -ml-1 cursor-grab touch-none px-1 text-faint select-none" aria-label="Arrastar">⋮⋮</span>
+      <RouterLink :to="`/exercicio/${exercise.id}`" class="min-w-0 flex-1 truncate font-semibold text-fg">
         {{ exercise.name }}
       </RouterLink>
-      <span v-if="exercise.rest_seconds" class="text-xs text-zinc-500">⏱ {{ exercise.rest_seconds }}s</span>
-      <RouterLink :to="`/exercicio/${exercise.id}`" class="px-1 text-zinc-500" aria-label="Detalhes">›</RouterLink>
+      <span v-if="exercise.rest_seconds" class="text-xs text-subtle">⏱ {{ exercise.rest_seconds }}s</span>
+      <RouterLink :to="`/exercicio/${exercise.id}`" class="px-1 text-subtle" aria-label="Detalhes">›</RouterLink>
     </header>
-    <p v-if="exercise.notes" class="mb-2 text-xs text-zinc-500">{{ exercise.notes }}</p>
+    <p v-if="exercise.notes" class="mb-2 text-xs text-subtle">{{ exercise.notes }}</p>
 
     <div class="flex flex-col gap-1.5">
       <SetRow
@@ -84,13 +84,13 @@ function applyToAll() {
     </div>
 
     <div class="mt-2 flex flex-wrap gap-2">
-      <button type="button" class="rounded-lg px-3 py-1.5 text-sm text-zinc-400 active:bg-zinc-800" @click="addSet">
+      <button type="button" class="rounded-lg px-3 py-1.5 text-sm text-muted active:bg-raised" @click="addSet">
         + série
       </button>
       <button
         v-if="applySource"
         type="button"
-        class="rounded-lg bg-lime-400/10 px-3 py-1.5 text-sm text-lime-300 active:bg-lime-400/20"
+        class="rounded-lg bg-accent/10 px-3 py-1.5 text-sm text-accent-ink active:bg-accent/20"
         @click="applyToAll"
       >
         Aplicar {{ formatWeight(applySource.weight_kg) }}kg × {{ applySource.reps }} a todas

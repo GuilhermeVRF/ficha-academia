@@ -13,7 +13,7 @@ onMounted(() => void routine.init())
   <LoginView v-if="routine.unauthorized" />
   <template v-else>
     <RouterView v-if="routine.loaded" />
-    <div v-else class="grid min-h-dvh place-items-center text-zinc-500">Carregando…</div>
+    <div v-else class="grid min-h-dvh place-items-center text-subtle">Carregando…</div>
   </template>
   <AppToast />
 </template>

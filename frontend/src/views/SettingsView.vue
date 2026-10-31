@@ -66,12 +66,12 @@ async function logout() {
 <template>
   <div class="pt-safe pb-safe mx-auto max-w-lg px-4">
     <header class="flex items-center gap-2 py-3">
-      <button type="button" class="-ml-2 px-2 text-2xl text-zinc-400" aria-label="Voltar" @click="router.back()">‹</button>
-      <h1 class="font-semibold">Ajustes</h1>
+      <button type="button" class="-ml-2 px-2 text-2xl text-muted" aria-label="Voltar" @click="router.back()">‹</button>
+      <h1 class="font-display text-2xl font-extrabold tracking-wide uppercase">Ajustes</h1>
     </header>
 
     <section class="mt-2">
-      <h2 class="mb-2 text-sm font-medium text-zinc-400">Fichas</h2>
+      <h2 class="mb-2 text-sm font-medium text-muted">Fichas</h2>
       <draggable
         :list="routine.workouts"
         item-key="id"
@@ -80,8 +80,8 @@ async function logout() {
         @end="onReorder"
       >
         <template #item="{ element }">
-          <div class="flex items-center gap-2 rounded-xl bg-zinc-900 px-3 py-1">
-            <span class="drag-handle cursor-grab touch-none text-zinc-600 select-none">⋮⋮</span>
+          <div class="flex items-center gap-2 rounded-xl bg-surface px-3 py-1">
+            <span class="drag-handle cursor-grab touch-none text-faint select-none">⋮⋮</span>
             <input
               :value="element.name"
               class="min-w-0 flex-1 bg-transparent py-2 outline-none"
@@ -89,25 +89,25 @@ async function logout() {
               @blur="rename(element.id, $event)"
               @keydown.enter="($event.target as HTMLInputElement).blur()"
             />
-            <span class="text-xs text-zinc-500">{{ element.exercises.length }} ex.</span>
-            <button type="button" class="px-2 text-red-400" aria-label="Apagar ficha" @click="removeWorkout(element.id, element.name)">
+            <span class="text-xs text-subtle">{{ element.exercises.length }} ex.</span>
+            <button type="button" class="px-2 text-danger" aria-label="Apagar ficha" @click="removeWorkout(element.id, element.name)">
               ✕
             </button>
           </div>
         </template>
       </draggable>
-      <p v-if="!routine.workouts.length" class="text-sm text-zinc-500">Nenhuma ficha.</p>
+      <p v-if="!routine.workouts.length" class="text-sm text-subtle">Nenhuma ficha.</p>
     </section>
 
     <section class="mt-6">
-      <h2 class="mb-2 text-sm font-medium text-zinc-400">Passo do botão de carga</h2>
+      <h2 class="mb-2 text-sm font-medium text-muted">Passo do botão de carga</h2>
       <div class="flex flex-wrap gap-2">
         <button
           v-for="step in WEIGHT_STEPS"
           :key="step"
           type="button"
           class="rounded-full px-4 py-2 text-sm"
-          :class="ui.weightStep === step ? 'bg-lime-400 text-zinc-950' : 'bg-zinc-900 text-zinc-300'"
+          :class="ui.weightStep === step ? 'bg-accent text-on-accent' : 'bg-surface text-fg'"
           @click="ui.weightStep = step"
         >
           {{ String(step).replace('.', ',') }} kg
@@ -116,16 +116,16 @@ async function logout() {
     </section>
 
     <section class="mt-6 flex flex-col gap-2">
-      <h2 class="text-sm font-medium text-zinc-400">Dados</h2>
-      <RouterLink to="/importar" class="rounded-xl bg-zinc-900 px-4 py-3">Colar ficha em texto</RouterLink>
-      <button type="button" class="rounded-xl bg-zinc-900 px-4 py-3 text-left" @click="exportBackup">
+      <h2 class="text-sm font-medium text-muted">Dados</h2>
+      <RouterLink to="/importar" class="rounded-xl bg-surface px-4 py-3">Colar ficha em texto</RouterLink>
+      <button type="button" class="rounded-xl bg-surface px-4 py-3 text-left" @click="exportBackup">
         Exportar backup (JSON)
       </button>
-      <button type="button" class="rounded-xl bg-zinc-900 px-4 py-3 text-left" @click="fileInput?.click()">
+      <button type="button" class="rounded-xl bg-surface px-4 py-3 text-left" @click="fileInput?.click()">
         Restaurar backup…
       </button>
       <input ref="fileInput" type="file" accept="application/json,.json" class="hidden" @change="importBackup" />
-      <button type="button" class="mt-4 rounded-xl px-4 py-3 text-left text-zinc-400" @click="logout">Sair</button>
+      <button type="button" class="mt-4 rounded-xl px-4 py-3 text-left text-muted" @click="logout">Sair</button>
     </section>
   </div>
 </template>

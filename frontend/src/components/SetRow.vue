@@ -39,11 +39,11 @@ function onPointerUp() {
 
 <template>
   <div class="relative overflow-hidden rounded-xl">
-    <div v-if="offset < 0" class="absolute inset-0 flex items-center justify-end bg-red-600/80 pr-4 text-sm font-medium text-white">
+    <div v-if="offset < 0" class="absolute inset-0 flex items-center justify-end bg-danger pr-4 text-sm font-medium text-white">
       Remover
     </div>
     <div
-      class="relative flex touch-pan-y items-center gap-2 bg-zinc-900 py-1 transition-[opacity]"
+      class="relative flex touch-pan-y items-center gap-2 bg-surface py-1 transition-[opacity]"
       :class="{ 'opacity-45': done }"
       :style="{ transform: `translateX(${offset}px)`, transition: offset ? 'none' : 'transform 0.2s' }"
       @pointerdown="onPointerDown"
@@ -53,8 +53,8 @@ function onPointerUp() {
     >
       <button
         type="button"
-        class="grid h-9 w-9 shrink-0 place-items-center rounded-full text-sm font-semibold"
-        :class="done ? 'bg-lime-400 text-zinc-950' : 'bg-zinc-800 text-zinc-400'"
+        class="grid h-9 w-9 shrink-0 place-items-center rounded-full font-display text-lg font-bold"
+        :class="done ? 'bg-accent text-on-accent' : 'bg-raised text-muted'"
         :aria-label="done ? `Desmarcar série ${index + 1}` : `Marcar série ${index + 1} como feita`"
         @click="emit('toggle')"
       >

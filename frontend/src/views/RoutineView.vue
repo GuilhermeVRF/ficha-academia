@@ -81,21 +81,23 @@ function onReorder() {
 
 <template>
   <div class="mx-auto flex min-h-dvh max-w-lg flex-col">
-    <header class="pt-safe sticky top-0 z-10 bg-[#0c0c0e]/95 backdrop-blur">
+    <header class="pt-safe sticky top-0 z-10 bg-bg/95 backdrop-blur">
       <div class="flex items-center gap-2 px-4 pt-3">
-        <h1 class="flex-1 text-lg font-bold tracking-tight">Ficha</h1>
-        <span v-if="routine.pending" class="text-xs text-amber-400" title="Alterações aguardando conexão">
+        <h1 class="flex flex-1 items-center gap-2 font-display text-2xl font-extrabold tracking-wide uppercase">
+          <img src="/icon.svg" alt="" class="h-7 w-7 rounded-lg" />Anilha
+        </h1>
+        <span v-if="routine.pending" class="text-xs text-warn" title="Alterações aguardando conexão">
           ● {{ routine.pending }} pendente{{ routine.pending > 1 ? 's' : '' }}
         </span>
-        <RouterLink to="/ajustes" class="rounded-lg px-2 py-1 text-xl text-zinc-400" aria-label="Ajustes">⚙</RouterLink>
+        <RouterLink to="/ajustes" class="rounded-lg px-2 py-1 text-xl text-muted" aria-label="Ajustes">⚙</RouterLink>
       </div>
       <nav class="flex gap-2 overflow-x-auto px-4 py-3 [scrollbar-width:none]">
         <button
           v-for="workout in routine.workouts"
           :key="workout.id"
           type="button"
-          class="shrink-0 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap"
-          :class="workout.id === current?.id ? 'bg-lime-400 text-zinc-950' : 'bg-zinc-900 text-zinc-300'"
+          class="shrink-0 rounded-full px-4 py-1.5 font-display text-lg font-bold tracking-wide whitespace-nowrap uppercase"
+          :class="workout.id === current?.id ? 'bg-accent text-on-accent' : 'bg-surface text-fg'"
           @click="selectedId = workout.id"
         >
           {{ workout.name }}
@@ -104,7 +106,7 @@ function onReorder() {
           <input
             ref="newWorkoutInput"
             v-model="newWorkoutName"
-            class="w-32 rounded-full bg-zinc-800 px-4 py-2 text-sm outline-none ring-2 ring-lime-400"
+            class="w-32 rounded-full bg-raised px-4 py-2 text-sm outline-none ring-2 ring-accent"
             enterkeyhint="done"
             @blur="createWorkout"
           />
@@ -112,7 +114,7 @@ function onReorder() {
         <button
           v-else
           type="button"
-          class="shrink-0 rounded-full bg-zinc-900 px-4 py-2 text-sm text-zinc-400"
+          class="shrink-0 rounded-full bg-surface px-4 py-2 text-sm text-muted"
           aria-label="Nova ficha"
           @click="startWorkoutCreation"
         >
@@ -123,11 +125,11 @@ function onReorder() {
 
     <main class="pb-safe flex flex-1 flex-col gap-3 px-3">
       <section v-if="!routine.workouts.length" class="mt-16 flex flex-col items-center gap-4 px-6 text-center">
-        <p class="text-zinc-400">Nenhuma ficha ainda.</p>
-        <RouterLink to="/importar" class="rounded-xl bg-lime-400 px-5 py-3 font-semibold text-zinc-950">
+        <p class="text-muted">Nenhuma ficha ainda.</p>
+        <RouterLink to="/importar" class="rounded-xl bg-accent px-5 py-3 font-semibold text-on-accent">
           Colar minha ficha
         </RouterLink>
-        <button type="button" class="text-sm text-zinc-400 underline" @click="startWorkoutCreation">
+        <button type="button" class="text-sm text-muted underline" @click="startWorkoutCreation">
           ou criar do zero
         </button>
       </section>
@@ -153,11 +155,11 @@ function onReorder() {
             placeholder="Adicionar exercício…"
             enterkeyhint="done"
             autocapitalize="sentences"
-            class="min-w-0 flex-1 rounded-xl bg-zinc-900 px-4 py-3 outline-none focus:ring-2 focus:ring-lime-400"
+            class="min-w-0 flex-1 rounded-xl bg-surface px-4 py-3 outline-none focus:ring-2 focus:ring-accent"
           />
           <button
             :disabled="!newExerciseName.trim()"
-            class="rounded-xl bg-lime-400 px-4 font-semibold text-zinc-950 disabled:opacity-30"
+            class="rounded-xl bg-accent px-4 font-semibold text-on-accent disabled:opacity-30"
           >
             +
           </button>
@@ -166,7 +168,7 @@ function onReorder() {
           </datalist>
         </form>
 
-        <div class="flex justify-between px-1 text-sm text-zinc-500">
+        <div class="flex justify-between px-1 text-sm text-subtle">
           <RouterLink to="/importar">Colar vários</RouterLink>
           <button
             v-if="doneCount"

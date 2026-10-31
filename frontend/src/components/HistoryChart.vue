@@ -14,13 +14,18 @@ import { formatSets, formatWeight } from '@/lib/format'
 import type { HistoryPoint } from '@/types'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip)
+ChartJS.defaults.font.family = getComputedStyle(document.body).fontFamily
 
 const props = defineProps<{ points: HistoryPoint[] }>()
 
-const SERIES_COLOR = '#65a30d'
-const SURFACE = '#18181b'
-const MUTED_TEXT = '#a1a1aa'
-const GRID = '#27272a'
+// Chart.js paints on canvas, so it reads the theme tokens instead of using CSS classes.
+const token = (name: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+const SERIES_COLOR = token('--c-accent')
+const SURFACE = token('--c-surface')
+const MUTED_TEXT = token('--c-subtle')
+const GRID = token('--c-line')
+const TOOLTIP_BG = token('--c-fg')
+const TOOLTIP_FG = token('--c-bg')
 
 const data = computed(() => ({
   labels: props.points.map((point) => formatDate(point.date)),
@@ -48,9 +53,9 @@ const options: ChartOptions<'line'> = {
   plugins: {
     legend: { display: false },
     tooltip: {
-      backgroundColor: '#f4f4f5',
-      titleColor: '#18181b',
-      bodyColor: '#3f3f46',
+      backgroundColor: TOOLTIP_BG,
+      titleColor: TOOLTIP_FG,
+      bodyColor: TOOLTIP_FG,
       displayColors: false,
       callbacks: {
         label: (item) => {

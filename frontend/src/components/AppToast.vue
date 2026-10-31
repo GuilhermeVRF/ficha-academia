@@ -14,11 +14,11 @@ const ui = useUiStore()
     <div
       v-if="ui.toast"
       :key="ui.toast.id"
-      class="fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom)+1rem)] z-50 mx-auto flex max-w-md items-center gap-3 rounded-xl bg-zinc-100 px-4 py-3 text-sm text-zinc-900 shadow-lg"
+      class="fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom)+1rem)] z-50 mx-auto flex max-w-md items-center gap-3 rounded-xl bg-fg px-4 py-3 text-sm text-bg shadow-lg"
       role="status"
     >
       <span class="flex-1">{{ ui.toast.message }}</span>
-      <button v-if="ui.toast.actionLabel" type="button" class="font-semibold text-lime-700" @click="ui.runToastAction">
+      <button v-if="ui.toast.actionLabel" type="button" class="font-semibold text-accent-inverse" @click="ui.runToastAction">
         {{ ui.toast.actionLabel }}
       </button>
     </div>

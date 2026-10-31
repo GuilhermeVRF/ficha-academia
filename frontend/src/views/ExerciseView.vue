@@ -60,11 +60,11 @@ function formatDate(isoDate: string) {
 <template>
   <div class="pt-safe pb-safe mx-auto max-w-lg px-4">
     <header class="flex items-center gap-2 py-3">
-      <button type="button" class="-ml-2 px-2 text-2xl text-zinc-400" aria-label="Voltar" @click="router.back()">‹</button>
-      <h1 class="text-sm text-zinc-500">Exercício</h1>
+      <button type="button" class="-ml-2 px-2 text-2xl text-muted" aria-label="Voltar" @click="router.back()">‹</button>
+      <h1 class="text-sm text-subtle">Exercício</h1>
     </header>
 
-    <p v-if="!found" class="mt-10 text-center text-zinc-500">Exercício não encontrado.</p>
+    <p v-if="!found" class="mt-10 text-center text-subtle">Exercício não encontrado.</p>
 
     <template v-else>
       <input
@@ -76,49 +76,49 @@ function formatDate(isoDate: string) {
       />
 
       <section class="mt-6">
-        <h2 class="mb-2 text-sm font-medium text-zinc-400">Evolução da carga máxima</h2>
-        <div class="rounded-2xl bg-zinc-900 p-3">
-          <p v-if="historyError" class="py-8 text-center text-sm text-zinc-500">Histórico indisponível offline.</p>
-          <p v-else-if="!history" class="py-8 text-center text-sm text-zinc-500">Carregando…</p>
-          <p v-else-if="history.length < 2" class="py-8 text-center text-sm text-zinc-500">
+        <h2 class="mb-2 text-sm font-medium text-muted">Evolução da carga máxima</h2>
+        <div class="rounded-2xl bg-surface p-3">
+          <p v-if="historyError" class="py-8 text-center text-sm text-subtle">Histórico indisponível offline.</p>
+          <p v-else-if="!history" class="py-8 text-center text-sm text-subtle">Carregando…</p>
+          <p v-else-if="history.length < 2" class="py-8 text-center text-sm text-subtle">
             O gráfico aparece quando você alterar a carga em dias diferentes.
           </p>
           <HistoryChart v-else :points="history" />
         </div>
-        <ul v-if="history?.length" class="mt-3 divide-y divide-zinc-800 text-sm">
+        <ul v-if="history?.length" class="mt-3 divide-y divide-line text-sm">
           <li v-for="point in [...history].reverse()" :key="point.date" class="flex justify-between gap-4 py-2">
-            <span class="text-zinc-400">{{ formatDate(point.date) }}</span>
-            <span class="text-right tabular-nums text-zinc-200">{{ formatSets(point.sets) }}</span>
+            <span class="text-muted">{{ formatDate(point.date) }}</span>
+            <span class="text-right tabular-nums text-fg">{{ formatSets(point.sets) }}</span>
           </li>
         </ul>
       </section>
 
       <section class="mt-6 flex flex-col gap-3">
-        <label class="flex flex-col gap-1 text-sm text-zinc-400">
+        <label class="flex flex-col gap-1 text-sm text-muted">
           Observações
           <textarea
             :value="found.exercise.notes"
             rows="2"
             placeholder="Ex.: banco no 3º furo, pegada fechada"
-            class="rounded-xl bg-zinc-900 px-3 py-2 text-zinc-100 outline-none focus:ring-2 focus:ring-lime-400"
+            class="rounded-xl bg-surface px-3 py-2 text-fg outline-none focus:ring-2 focus:ring-accent"
             @blur="saveText('notes', $event)"
           />
         </label>
-        <label class="flex items-center justify-between gap-3 text-sm text-zinc-400">
+        <label class="flex items-center justify-between gap-3 text-sm text-muted">
           Descanso (segundos)
           <input
             :value="found.exercise.rest_seconds ?? ''"
             inputmode="numeric"
             placeholder="—"
-            class="w-24 rounded-xl bg-zinc-900 px-3 py-2 text-right text-zinc-100 outline-none focus:ring-2 focus:ring-lime-400"
+            class="w-24 rounded-xl bg-surface px-3 py-2 text-right text-fg outline-none focus:ring-2 focus:ring-accent"
             @blur="saveRest"
           />
         </label>
-        <label class="flex items-center justify-between gap-3 text-sm text-zinc-400">
+        <label class="flex items-center justify-between gap-3 text-sm text-muted">
           Ficha
           <select
             :value="found.workout.id"
-            class="rounded-xl bg-zinc-900 px-3 py-2 text-zinc-100 outline-none"
+            class="rounded-xl bg-surface px-3 py-2 text-fg outline-none"
             @change="move"
           >
             <option v-for="workout in routine.workouts" :key="workout.id" :value="workout.id">{{ workout.name }}</option>
@@ -126,7 +126,7 @@ function formatDate(isoDate: string) {
         </label>
       </section>
 
-      <button type="button" class="mt-10 w-full rounded-xl bg-red-950/60 py-3 text-red-300" @click="remove">
+      <button type="button" class="mt-10 w-full rounded-xl bg-danger/15 py-3 text-danger" @click="remove">
         Remover exercício
       </button>
     </template>

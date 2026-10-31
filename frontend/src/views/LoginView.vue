@@ -28,19 +28,19 @@ async function submit() {
   <main class="grid min-h-dvh place-items-center px-6">
     <form class="flex w-full max-w-xs flex-col gap-3" @submit.prevent="submit">
       <img src="/icon.svg" alt="" class="mx-auto mb-2 h-16 w-16" />
-      <h1 class="text-center text-xl font-semibold">Ficha</h1>
+      <h1 class="text-center font-display text-4xl font-extrabold tracking-wide uppercase">Anilha</h1>
       <input
         v-model="password"
         type="password"
         autocomplete="current-password"
         placeholder="Senha"
-        class="rounded-xl bg-zinc-900 px-4 py-3 outline-none focus:ring-2 focus:ring-lime-400"
+        class="rounded-xl bg-surface px-4 py-3 outline-none focus:ring-2 focus:ring-accent"
         autofocus
       />
-      <p v-if="error" class="text-sm text-red-400">{{ error }}</p>
+      <p v-if="error" class="text-sm text-danger">{{ error }}</p>
       <button
         :disabled="busy || !password"
-        class="rounded-xl bg-lime-400 py-3 font-semibold text-zinc-950 disabled:opacity-50"
+        class="rounded-xl bg-accent py-3 font-semibold text-on-accent disabled:opacity-50"
       >
         Entrar
       </button>

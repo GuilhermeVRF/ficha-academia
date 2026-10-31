@@ -1,14 +1,83 @@
 @import 'tailwindcss';
+@import '@fontsource-variable/big-shoulders-display';
+@import '@fontsource-variable/figtree';
 
+/*
+ * Anilha identity. Colors are semantic tokens so components never name a hue;
+ * dark is the default and a light palette follows the OS setting.
+ * Plate colors follow competition bumper plates and tag each workout.
+ */
 :root {
   color-scheme: dark;
+  --c-bg: #15171b;
+  --c-surface: #1e2127;
+  --c-raised: #262a31;
+  --c-line: #323741;
+  --c-fg: #eef0f3;
+  --c-muted: #a3a9b5;
+  --c-subtle: #8d94a1;
+  --c-faint: #5f6673;
+  --c-accent: #e8c547;
+  --c-accent-ink: #f0d673;
+  --c-accent-inverse: #7a5e00;
+  --c-on-accent: #17181b;
+  --c-danger: #e0524b;
+  --c-warn: #f0a03c;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+    --c-bg: #f1f2f4;
+    --c-surface: #ffffff;
+    --c-raised: #e7e9ed;
+    --c-line: #d5d9e0;
+    --c-fg: #15171b;
+    --c-muted: #4f5664;
+    --c-subtle: #687080;
+    --c-faint: #9aa1ad;
+    --c-accent: #e8c547;
+    --c-accent-ink: #7a5e00;
+    --c-accent-inverse: #e8c547;
+    --c-on-accent: #17181b;
+    --c-danger: #c2332c;
+    --c-warn: #b4610a;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--c-bg);
+  --color-surface: var(--c-surface);
+  --color-raised: var(--c-raised);
+  --color-line: var(--c-line);
+  --color-fg: var(--c-fg);
+  --color-muted: var(--c-muted);
+  --color-subtle: var(--c-subtle);
+  --color-faint: var(--c-faint);
+  --color-accent: var(--c-accent);
+  --color-accent-ink: var(--c-accent-ink);
+  --color-accent-inverse: var(--c-accent-inverse);
+  --color-on-accent: var(--c-on-accent);
+  --color-danger: var(--c-danger);
+  --color-warn: var(--c-warn);
+}
+
+@theme {
+  --font-sans: 'Figtree Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Big Shoulders Display Variable', 'Arial Narrow', system-ui, sans-serif;
+
+  --color-plate-red: #d6413a;
+  --color-plate-blue: #2f6fd6;
+  --color-plate-yellow: #e8c547;
+  --color-plate-green: #3fa45b;
+  --color-plate-white: #e9ecef;
 }
 
 html,
 body {
-  background: #0c0c0e;
-  color: #f4f4f5;
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  background: var(--c-bg);
+  color: var(--c-fg);
+  font-family: var(--font-sans);
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: none;
 }
