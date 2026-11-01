@@ -28,7 +28,7 @@ async function submit() {
   <main class="grid min-h-dvh place-items-center px-6">
     <form class="flex w-full max-w-xs flex-col gap-3" @submit.prevent="submit">
       <img src="/icon.svg" alt="" class="mx-auto mb-2 h-16 w-16" />
-      <h1 class="text-center font-display text-4xl font-extrabold tracking-wide uppercase">Anilha</h1>
+      <h1 class="text-center font-display text-4xl font-extrabold tracking-wide uppercase">Pino</h1>
       <input
         v-model="password"
         type="password"

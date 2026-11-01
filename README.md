@@ -1,4 +1,4 @@
-# Ficha de Academia
+# Pino
 
 PWA pessoal para acompanhar a ficha de treino com o mínimo de atrito. A ficha é a fonte da verdade: você edita carga/reps direto nela e o histórico de evolução é gerado automaticamente (1 ponto por dia em que algo mudou).
 

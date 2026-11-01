@@ -84,7 +84,7 @@ function onReorder() {
     <header class="pt-safe sticky top-0 z-10 bg-bg/95 backdrop-blur">
       <div class="flex items-center gap-2 px-4 pt-3">
         <h1 class="flex flex-1 items-center gap-2 font-display text-2xl font-extrabold tracking-wide uppercase">
-          <img src="/icon.svg" alt="" class="h-7 w-7 rounded-lg" />Anilha
+          <img src="/icon.svg" alt="" class="h-7 w-7 rounded-lg" />Pino
         </h1>
         <span v-if="routine.pending" class="text-xs text-warn" title="Alterações aguardando conexão">
           ● {{ routine.pending }} pendente{{ routine.pending > 1 ? 's' : '' }}

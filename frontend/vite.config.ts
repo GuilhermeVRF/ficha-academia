@@ -12,8 +12,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icon.svg', 'apple-touch-icon.png'],
       manifest: {
-        name: 'Anilha',
-        short_name: 'Anilha',
+        name: 'Pino',
+        short_name: 'Pino',
         description: 'Sua ficha de treino, editável em um toque.',
         lang: 'pt-BR',
         start_url: '/',
