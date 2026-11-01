@@ -33,3 +33,17 @@ export interface ImportPreview {
     exercises: { name: string; sets: SetData[]; warning: string | null }[]
   }[]
 }
+
+export interface User {
+  id: string
+  name: string
+  email: string
+  is_admin: boolean
+}
+
+export interface Invite {
+  code: string
+  created_at: string
+  expires_at: string
+  used_by_name: string | null
+}

@@ -1,0 +1,19 @@
+# Local development database. Start it with: podman compose up -d
+services:
+  postgres:
+    image: docker.io/library/postgres:16-alpine
+    environment:
+      POSTGRES_USER: pino
+      POSTGRES_PASSWORD: pino
+      POSTGRES_DB: pino
+    ports:
+      - "5432:5432"
+    volumes:
+      - pino-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pino"]
+      interval: 2s
+      retries: 15
+
+volumes:
+  pino-postgres:

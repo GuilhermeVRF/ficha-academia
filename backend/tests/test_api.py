@@ -1,14 +1,11 @@
 """End-to-end tests of the HTTP API against an in-memory database."""
 
-from dataclasses import replace
 from datetime import date
 
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import sessionmaker
 
-from app import auth
-from app.config import Settings
 from app.models import Exercise
 from app.services.snapshot import record_snapshot
 
@@ -81,19 +78,3 @@ def test_should_round_trip_backup(client: TestClient, exercise_id: str) -> None:
     client.post("/api/import-json", json=backup)
 
     assert client.get("/api/export").json() == backup
-
-
-def test_should_reject_requests_without_session_when_password_is_set(
-    client: TestClient,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(auth, "settings", _settings_with_password("segredo"))
-
-    assert client.get("/api/workouts").status_code == 401
-    assert client.post("/api/auth/login", json={"password": "segredo"}).status_code == 204
-    assert client.get("/api/workouts").status_code == 200
-
-
-def _settings_with_password(password: str) -> Settings:
-    """Copy of the current settings with a password enabled."""
-    return replace(auth.settings, app_password=password)

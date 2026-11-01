@@ -5,25 +5,23 @@ import pytest
 from app.config import load_settings
 
 
-def test_production_requires_password_and_secret(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Secure mode without secrets fails fast, naming every missing variable."""
+def test_production_requires_admin(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Without an admin nobody could invite anyone, so production refuses to start."""
     monkeypatch.setenv("SECURE_COOKIE", "true")
-    monkeypatch.delenv("APP_PASSWORD", raising=False)
-    monkeypatch.delenv("SECRET_KEY", raising=False)
-    with pytest.raises(RuntimeError, match="APP_PASSWORD, SECRET_KEY"):
+    monkeypatch.setenv("ADMIN_EMAIL", "")
+    monkeypatch.setenv("ADMIN_PASSWORD", "curta")
+    with pytest.raises(RuntimeError, match="ADMIN_EMAIL, ADMIN_PASSWORD"):
         load_settings()
 
 
-def test_production_accepts_configured_secrets(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Secure mode loads normally once both secrets are set."""
+def test_production_accepts_configured_admin(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("SECURE_COOKIE", "true")
-    monkeypatch.setenv("APP_PASSWORD", "s3nha")
-    monkeypatch.setenv("SECRET_KEY", "a" * 64)
-    assert load_settings().secure_cookie
+    monkeypatch.setenv("ADMIN_EMAIL", "gui@example.com")
+    monkeypatch.setenv("ADMIN_PASSWORD", "senha-forte-1")
+    assert load_settings().admin_email == "gui@example.com"
 
 
-def test_dev_mode_allows_missing_secrets(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Local development keeps working without any secrets."""
-    monkeypatch.delenv("SECURE_COOKIE", raising=False)
-    monkeypatch.delenv("APP_PASSWORD", raising=False)
-    assert load_settings().app_password == ""
+def test_dev_mode_allows_missing_admin(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("SECURE_COOKIE", "false")
+    monkeypatch.setenv("ADMIN_EMAIL", "")
+    assert load_settings().admin_email == ""

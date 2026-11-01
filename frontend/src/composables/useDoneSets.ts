@@ -30,6 +30,11 @@ function load(): Set<string> {
   }
 }
 
+/** Forget today's checkmarks (e.g. when another account signs in). */
+export function resetDoneSets() {
+  done.value = new Set()
+}
+
 export function useDoneSets() {
   const key = (exerciseId: string, index: number) => `${exerciseId}:${index}`
 

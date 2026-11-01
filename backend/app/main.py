@@ -1,5 +1,7 @@
 """FastAPI application: JSON API under /api plus the built PWA at /."""
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, status
@@ -8,18 +10,33 @@ from fastapi.staticfiles import StaticFiles
 
 from app import auth
 from app.config import settings
-from app.routers import importing, workouts
+from app.db import SessionLocal
+from app.routers import importing, invites, workouts
+from app.services.admin import ensure_admin
 
-app = FastAPI(title="Ficha de Academia")
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    """Make the database's admin match ADMIN_* before serving requests."""
+    if settings.admin_email:
+        with SessionLocal() as session:
+            ensure_admin(session, settings.admin_name, settings.admin_email, settings.admin_password)
+            session.commit()
+    yield
+
+
+app = FastAPI(title="Pino", lifespan=lifespan)
 
 api = APIRouter(prefix="/api")
 api.include_router(auth.router)
-api.include_router(workouts.router, dependencies=[Depends(auth.require_session)])
-api.include_router(importing.router, dependencies=[Depends(auth.require_session)])
+# Every handler also takes the user itself; the router-level check guards future endpoints.
+api.include_router(invites.router)
+api.include_router(workouts.router, dependencies=[Depends(auth.current_user)])
+api.include_router(importing.router, dependencies=[Depends(auth.current_user)])
 app.include_router(api)
 
 
-@app.get("/healthz", include_in_schema=False)
+@app.api_route("/healthz", methods=["GET", "HEAD"], include_in_schema=False)
 def healthz() -> dict[str, str]:
     """Liveness probe for Railway."""
     return {"status": "ok"}
@@ -30,7 +47,7 @@ def _mount_frontend(static_dir: Path) -> None:
     index_file = static_dir / "index.html"
     app.mount("/assets", StaticFiles(directory=static_dir / "assets"), name="assets")
 
-    @app.get("/{path:path}", include_in_schema=False)
+    @app.api_route("/{path:path}", methods=["GET", "HEAD"], include_in_schema=False)
     def spa(path: str) -> FileResponse:
         """Return a static file, or index.html so the client router can handle the path."""
         if path.startswith("api/"):
