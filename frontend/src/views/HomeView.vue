@@ -78,14 +78,10 @@ function duration(item: { started_at: string; finished_at: string }) {
 </script>
 
 <template>
-  <div class="pt-safe pb-safe mx-auto flex max-w-lg flex-col gap-4 px-4">
-    <header class="flex items-start gap-2 pt-4">
-      <div class="min-w-0 flex-1">
-        <p class="text-sm text-subtle first-letter:uppercase">{{ formatLongDate(now) }}</p>
-        <h1 class="font-display text-3xl font-extrabold tracking-wide uppercase">{{ greeting }}</h1>
-      </div>
-      <RouterLink to="/fichas" class="rounded-lg bg-surface px-3 py-2 text-sm font-semibold">Fichas</RouterLink>
-      <RouterLink to="/ajustes" class="rounded-lg px-2 py-1 text-xl text-muted" aria-label="Ajustes">⚙</RouterLink>
+  <div class="pt-safe pb-nav mx-auto flex max-w-lg flex-col gap-4 px-4">
+    <header class="pt-4">
+      <p class="text-sm text-subtle first-letter:uppercase">{{ formatLongDate(now) }}</p>
+      <h1 class="font-display text-3xl font-extrabold tracking-wide uppercase">{{ greeting }}</h1>
     </header>
 
     <section v-if="session.active" class="flex flex-col gap-3 rounded-2xl bg-accent p-4 text-on-accent">
