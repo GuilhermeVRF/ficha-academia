@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import AppToast from './components/AppToast.vue'
+import BottomNav from './components/BottomNav.vue'
 import { useAuthStore } from './stores/auth'
 import { useHistoryStore } from './stores/history'
 import { useRoutineStore } from './stores/routine'
@@ -11,6 +12,7 @@ const auth = useAuthStore()
 const history = useHistoryStore()
 const routine = useRoutineStore()
 const session = useSessionStore()
+const route = useRoute()
 const router = useRouter()
 
 watch(
@@ -44,5 +46,6 @@ watch(
 <template>
   <RouterView v-if="!auth.user || routine.loaded" />
   <div v-else class="grid min-h-dvh place-items-center text-subtle">Carregando…</div>
-  <AppToast />
+  <BottomNav v-if="auth.user && route.meta.tab" />
+  <AppToast :above-nav="Boolean(auth.user && route.meta.tab)" />
 </template>

@@ -94,3 +94,8 @@ button {
 .pb-safe {
   padding-bottom: calc(env(safe-area-inset-bottom) + 1rem);
 }
+
+/* Room for the bottom tab bar on tab screens. */
+.pb-nav {
+  padding-bottom: calc(env(safe-area-inset-bottom) + 6rem);
+}
