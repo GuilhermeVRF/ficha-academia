@@ -1,6 +1,6 @@
 """Request and response models for the API."""
 
-from datetime import date
+from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -91,10 +91,45 @@ class HistoryPoint(BaseModel):
     volume_kg: float
 
 
-class LoginRequest(BaseModel):
-    """Login payload."""
+MIN_PASSWORD_LENGTH = 8
 
-    password: str
+
+class LoginRequest(BaseModel):
+    """Email and password login."""
+
+    email: str = Field(min_length=3, max_length=254)
+    password: str = Field(max_length=200)
+
+
+class SignupRequest(BaseModel):
+    """New account created from an invite."""
+
+    name: str = Field(min_length=1, max_length=80)
+    email: str = Field(min_length=3, max_length=254, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+    password: str = Field(min_length=MIN_PASSWORD_LENGTH, max_length=200)
+    invite_code: str = Field(min_length=1, max_length=32)
+
+
+class UserOut(BaseModel):
+    """The signed-in user as shown to the client."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    name: str
+    email: str
+    is_admin: bool
+
+
+class InviteOut(BaseModel):
+    """An invite and whether someone already used it."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    code: str
+    created_at: datetime
+    expires_at: datetime
+    used_by_name: str | None = None
 
 
 class ImportTextRequest(BaseModel):

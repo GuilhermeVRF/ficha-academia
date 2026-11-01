@@ -5,7 +5,7 @@ import { ApiError, NetworkError, request } from '@/lib/api'
 import { enqueue, flush, initOutbox } from '@/lib/outbox'
 import type { Exercise, SetData, Workout } from '@/types'
 
-const TREE_KEY = 'tree'
+export const TREE_KEY = 'tree'
 const DEFAULT_SETS: SetData[] = [
   { weight_kg: 0, reps: 10 },
   { weight_kg: 0, reps: 10 },
@@ -26,6 +26,8 @@ export const useRoutineStore = defineStore('routine', () => {
     return [...names].sort((a, b) => a.localeCompare(b, 'pt-BR'))
   })
 
+  let watchingCache = false
+
   async function init() {
     await initOutbox({
       onUnauthorized: () => (unauthorized.value = true),
@@ -38,7 +40,17 @@ export const useRoutineStore = defineStore('routine', () => {
     }
     await refresh()
     loaded.value = true
-    watch(workouts, saveCache, { deep: true })
+    if (!watchingCache) {
+      watch(workouts, saveCache, { deep: true })
+      watchingCache = true
+    }
+  }
+
+  /** Forget the in-memory tree when signing out; the cache is cleared separately. */
+  function reset() {
+    workouts.value = []
+    loaded.value = false
+    unauthorized.value = false
   }
 
   /** Pull the server tree, but only once local changes are synced so they aren't overwritten. */
@@ -165,6 +177,7 @@ export const useRoutineStore = defineStore('routine', () => {
     unauthorized,
     exerciseNames,
     init,
+    reset,
     refresh,
     findExercise,
     addWorkout,

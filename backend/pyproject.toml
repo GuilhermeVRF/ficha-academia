@@ -9,6 +9,8 @@ dependencies = [
     "sqlalchemy>=2.0.36",
     "alembic>=1.14",
     "psycopg[binary]>=3.2",
+    "pwdlib[argon2]>=0.2",
+    "python-dotenv>=1.0",
     "pydantic>=2.9",
     "tzdata>=2024.2",
 ]

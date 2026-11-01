@@ -24,13 +24,24 @@ let inFlight: Entry | undefined
 let timer: ReturnType<typeof setTimeout> | undefined
 let onUnauthorized: () => void = () => {}
 let onChange: (pending: number) => void = () => {}
+let listening = false
 
 export async function initOutbox(handlers: { onUnauthorized: () => void; onChange: (pending: number) => void }) {
   onUnauthorized = handlers.onUnauthorized
   onChange = handlers.onChange
   entries = (await get<Entry[]>(STORAGE_KEY).catch(() => undefined)) ?? []
   onChange(entries.length)
-  window.addEventListener('online', () => void flush())
+  if (!listening) {
+    window.addEventListener('online', () => void flush())
+    listening = true
+  }
+}
+
+/** Drop every pending change; used when the device switches to another account. */
+export async function clearOutbox() {
+  clearTimeout(timer)
+  entries = []
+  await persist()
 }
 
 export function pendingCount() {

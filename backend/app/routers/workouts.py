@@ -6,8 +6,9 @@ from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
+from app.auth import CurrentUser
 from app.db import SessionDep
-from app.models import Exercise, ExerciseSet, Workout
+from app.models import Exercise, ExerciseSet, User, Workout
 from app.schemas import (
     ExerciseCreate,
     ExerciseOut,
@@ -26,11 +27,12 @@ router = APIRouter(tags=["workouts"])
 
 
 @router.get("/workouts", response_model=list[WorkoutOut])
-def list_workouts(session: SessionDep) -> list[Workout]:
-    """Return the full tree (workouts → exercises → sets) in one request."""
+def list_workouts(user: CurrentUser, session: SessionDep) -> list[Workout]:
+    """Return the user's full tree (workouts → exercises → sets) in one request."""
     return list(
         session.scalars(
             select(Workout)
+            .where(Workout.user_id == user.id)
             .options(selectinload(Workout.exercises).selectinload(Exercise.sets))
             .order_by(Workout.position)
         )
@@ -38,24 +40,24 @@ def list_workouts(session: SessionDep) -> list[Workout]:
 
 
 @router.post("/workouts", response_model=WorkoutOut, status_code=status.HTTP_201_CREATED)
-def create_workout(payload: WorkoutCreate, session: SessionDep) -> Workout:
+def create_workout(payload: WorkoutCreate, user: CurrentUser, session: SessionDep) -> Workout:
     """Create a workout at the end of the list; replays with the same id are no-ops."""
     existing = session.get(Workout, payload.id)
     if existing is not None:
+        _ensure_owner(existing, user)
         return existing
-    next_position = session.scalar(select(func.coalesce(func.max(Workout.position) + 1, 0)))
-    workout = Workout(id=payload.id, name=payload.name, position=next_position)
+    workout = Workout(id=payload.id, user_id=user.id, name=payload.name, position=next_workout_position(session, user))
     session.add(workout)
     session.flush()
     return workout
 
 
 @router.put("/workouts/order", status_code=status.HTTP_204_NO_CONTENT)
-def reorder_workouts(payload: OrderUpdate, session: SessionDep) -> None:
-    """Reorder workouts by the given id list."""
+def reorder_workouts(payload: OrderUpdate, user: CurrentUser, session: SessionDep) -> None:
+    """Reorder the user's workouts by the given id list."""
     for position, workout_id in enumerate(payload.ids):
         workout = session.get(Workout, workout_id)
-        if workout is not None:
+        if workout is not None and workout.user_id == user.id:
             workout.position = position
 
 
@@ -63,20 +65,21 @@ def reorder_workouts(payload: OrderUpdate, session: SessionDep) -> None:
 def update_workout(
     workout_id: str,
     payload: WorkoutUpdate,
+    user: CurrentUser,
     session: SessionDep,
 ) -> Workout:
     """Rename a workout."""
-    workout = _get_workout(session, workout_id)
+    workout = _get_workout(session, user, workout_id)
     if payload.name is not None:
         workout.name = payload.name
     return workout
 
 
 @router.delete("/workouts/{workout_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_workout(workout_id: str, session: SessionDep) -> None:
+def delete_workout(workout_id: str, user: CurrentUser, session: SessionDep) -> None:
     """Delete a workout and everything under it; deleting twice is a no-op."""
     workout = session.get(Workout, workout_id)
-    if workout is not None:
+    if workout is not None and workout.user_id == user.id:
         session.delete(workout)
 
 
@@ -84,10 +87,11 @@ def delete_workout(workout_id: str, session: SessionDep) -> None:
 def reorder_exercises(
     workout_id: str,
     payload: OrderUpdate,
+    user: CurrentUser,
     session: SessionDep,
 ) -> None:
     """Reorder the exercises of a workout by the given id list."""
-    workout = _get_workout(session, workout_id)
+    workout = _get_workout(session, user, workout_id)
     positions = {exercise_id: index for index, exercise_id in enumerate(payload.ids)}
     for exercise in workout.exercises:
         exercise.position = positions.get(exercise.id, exercise.position)
@@ -101,13 +105,15 @@ def reorder_exercises(
 def create_exercise(
     workout_id: str,
     payload: ExerciseCreate,
+    user: CurrentUser,
     session: SessionDep,
 ) -> Exercise:
     """Append an exercise to a workout; replays with the same id are no-ops."""
     existing = session.get(Exercise, payload.id)
     if existing is not None:
+        _ensure_owner(existing.workout, user)
         return existing
-    workout = _get_workout(session, workout_id)
+    workout = _get_workout(session, user, workout_id)
     exercise = Exercise(
         id=payload.id,
         workout_id=workout.id,
@@ -127,13 +133,14 @@ def create_exercise(
 def update_exercise(
     exercise_id: str,
     payload: ExerciseUpdate,
+    user: CurrentUser,
     session: SessionDep,
 ) -> Exercise:
     """Update name, notes, rest time or move the exercise to another workout."""
-    exercise = _get_exercise(session, exercise_id)
+    exercise = _get_exercise(session, user, exercise_id)
     changes = payload.model_dump(exclude_unset=True)
     if "workout_id" in changes:
-        target = _get_workout(session, changes.pop("workout_id"))
+        target = _get_workout(session, user, changes.pop("workout_id"))
         exercise.workout_id = target.id
         exercise.position = len(target.exercises)
     for field_name, value in changes.items():
@@ -142,10 +149,10 @@ def update_exercise(
 
 
 @router.delete("/exercises/{exercise_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_exercise(exercise_id: str, session: SessionDep) -> None:
+def delete_exercise(exercise_id: str, user: CurrentUser, session: SessionDep) -> None:
     """Delete an exercise and its history; deleting twice is a no-op."""
     exercise = session.get(Exercise, exercise_id)
-    if exercise is not None:
+    if exercise is not None and exercise.workout.user_id == user.id:
         session.delete(exercise)
 
 
@@ -153,6 +160,7 @@ def delete_exercise(exercise_id: str, session: SessionDep) -> None:
 def replace_sets(
     exercise_id: str,
     payload: SetsReplace,
+    user: CurrentUser,
     session: SessionDep,
 ) -> Exercise:
     """Replace all sets of an exercise and update today's history snapshot.
@@ -160,7 +168,7 @@ def replace_sets(
     Replacing the whole list keeps the endpoint idempotent, which lets the
     client's offline outbox retry it safely.
     """
-    exercise = _get_exercise(session, exercise_id)
+    exercise = _get_exercise(session, user, exercise_id)
     exercise.sets = _build_sets(payload.sets)
     session.flush()
     record_snapshot(session, exercise)
@@ -168,26 +176,43 @@ def replace_sets(
 
 
 @router.get("/exercises/{exercise_id}/history", response_model=list[HistoryPoint])
-def exercise_history(exercise_id: str, session: SessionDep) -> list[HistoryPoint]:
+def exercise_history(exercise_id: str, user: CurrentUser, session: SessionDep) -> list[HistoryPoint]:
     """Return the daily snapshots of an exercise with summary metrics."""
-    exercise = _get_exercise(session, exercise_id)
+    exercise = _get_exercise(session, user, exercise_id)
     return [_to_history_point(snapshot.date, snapshot.sets) for snapshot in exercise.snapshots]
 
 
-def _get_workout(session: Session, workout_id: str) -> Workout:
-    """Load a workout or fail with 404."""
+def next_workout_position(session: Session, user: User) -> int:
+    """Position that places a new workout after the user's existing ones."""
+    return session.scalar(
+        select(func.coalesce(func.max(Workout.position) + 1, 0)).where(Workout.user_id == user.id)
+    )
+
+
+def _get_workout(session: Session, user: User, workout_id: str) -> Workout:
+    """Load one of the user's workouts; other users' workouts look missing (404)."""
     workout = session.get(Workout, workout_id)
-    if workout is None:
+    if workout is None or workout.user_id != user.id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Ficha não encontrada")
     return workout
 
 
-def _get_exercise(session: Session, exercise_id: str) -> Exercise:
-    """Load an exercise or fail with 404."""
+def _get_exercise(session: Session, user: User, exercise_id: str) -> Exercise:
+    """Load one of the user's exercises; other users' exercises look missing (404)."""
     exercise = session.get(Exercise, exercise_id)
-    if exercise is None:
+    if exercise is None or exercise.workout.user_id != user.id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Exercício não encontrado")
     return exercise
+
+
+def _ensure_owner(workout: Workout, user: User) -> None:
+    """Reject a replayed create whose client id already belongs to another account.
+
+    Raises:
+        HTTPException: 409, so the id is never echoed back with someone else's data.
+    """
+    if workout.user_id != user.id:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Identificador já em uso")
 
 
 def _build_sets(sets: list[SetData]) -> list[ExerciseSet]:

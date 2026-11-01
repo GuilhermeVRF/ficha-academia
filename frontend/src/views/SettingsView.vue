@@ -1,18 +1,67 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import draggable from 'vuedraggable'
 import { useRouter } from 'vue-router'
 import { ApiError, request } from '@/lib/api'
 import { flush } from '@/lib/outbox'
+import { useAuthStore } from '@/stores/auth'
 import { useRoutineStore } from '@/stores/routine'
 import { useUiStore } from '@/stores/ui'
+import type { Invite } from '@/types'
 
 const WEIGHT_STEPS = [0.5, 1, 1.25, 2, 2.5, 5]
 
+const auth = useAuthStore()
 const routine = useRoutineStore()
 const ui = useUiStore()
 const router = useRouter()
 const fileInput = ref<HTMLInputElement>()
+const invites = ref<Invite[]>([])
+const newInviteLink = ref('')
+const inviteLinkInput = ref<HTMLInputElement>()
+
+onMounted(() => {
+  if (auth.user?.is_admin) void loadInvites()
+})
+
+async function loadInvites() {
+  invites.value = await request<Invite[]>('GET', '/invites').catch(() => [])
+}
+
+function inviteLink(code: string) {
+  return `${location.origin}/cadastro?convite=${encodeURIComponent(code)}`
+}
+
+async function createInvite() {
+  try {
+    const invite = await request<Invite>('POST', '/invites')
+    newInviteLink.value = inviteLink(invite.code)
+    invites.value = [invite, ...invites.value]
+  } catch {
+    ui.showToast('Não foi possível criar o convite (sem conexão?)')
+  }
+}
+
+async function shareInvite() {
+  const text = `Bora treinar no Pino! Crie sua conta: ${newInviteLink.value}`
+  if (navigator.share) {
+    await navigator.share({ title: 'Convite para o Pino', text }).catch(() => undefined)
+    return
+  }
+  try {
+    await navigator.clipboard.writeText(newInviteLink.value)
+    ui.showToast('Link copiado')
+  } catch {
+    inviteLinkInput.value?.select()
+  }
+}
+
+function inviteStatus(invite: Invite) {
+  if (invite.used_by_name) return `Usado por ${invite.used_by_name}`
+  const expires = new Date(invite.expires_at)
+  if (expires <= new Date()) return 'Expirado'
+  return `Válido até ${expires.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}`
+}
 
 function rename(workoutId: string, event: Event) {
   const name = (event.target as HTMLInputElement).value.trim()
@@ -45,7 +94,7 @@ async function exportBackup() {
 async function importBackup(event: Event) {
   const file = (event.target as HTMLInputElement).files?.[0]
   if (!file) return
-  if (!confirm('Restaurar o backup vai SUBSTITUIR todos os dados atuais. Continuar?')) return
+  if (!confirm('Restaurar o backup vai SUBSTITUIR todas as suas fichas atuais. Continuar?')) return
   try {
     await request('POST', '/import-json', JSON.parse(await file.text()))
     await routine.refresh()
@@ -58,8 +107,11 @@ async function importBackup(event: Event) {
 }
 
 async function logout() {
-  await request('POST', '/auth/logout').catch(() => undefined)
-  routine.unauthorized = true
+  if (routine.pending && !confirm(`${routine.pending} alteração(ões) ainda não sincronizada(s) serão perdidas se você sair agora. Sair mesmo assim?`)) {
+    return
+  }
+  await auth.logout()
+  await router.replace('/entrar')
 }
 </script>
 
@@ -70,7 +122,41 @@ async function logout() {
       <h1 class="font-display text-2xl font-extrabold tracking-wide uppercase">Ajustes</h1>
     </header>
 
-    <section class="mt-2">
+    <section v-if="auth.user" class="mt-2 flex items-center gap-3 rounded-xl bg-surface px-4 py-3">
+      <div class="min-w-0 flex-1">
+        <p class="truncate font-semibold">{{ auth.user.name }}</p>
+        <p class="truncate text-sm text-subtle">{{ auth.user.email }}</p>
+      </div>
+      <button type="button" class="rounded-lg px-3 py-2 text-sm text-muted active:bg-raised" @click="logout">Sair</button>
+    </section>
+
+    <section v-if="auth.user?.is_admin" class="mt-6 flex flex-col gap-2">
+      <h2 class="text-sm font-medium text-muted">Convidar amigos</h2>
+      <p class="text-sm text-subtle">Cada link vale para uma pessoa, por 7 dias.</p>
+      <button type="button" class="rounded-xl bg-accent py-3 font-semibold text-on-accent" @click="createInvite">
+        Gerar link de convite
+      </button>
+      <div v-if="newInviteLink" class="flex gap-2">
+        <input
+          id="invite-link"
+          ref="inviteLinkInput"
+          :value="newInviteLink"
+          readonly
+          aria-label="Link de convite"
+          class="min-w-0 flex-1 rounded-xl bg-surface px-3 py-2 font-mono text-xs text-fg outline-none"
+          @focus="($event.target as HTMLInputElement).select()"
+        />
+        <button type="button" class="rounded-xl bg-raised px-4 text-sm font-semibold" @click="shareInvite">Enviar</button>
+      </div>
+      <ul v-if="invites.length" class="divide-y divide-line rounded-xl bg-surface text-sm">
+        <li v-for="invite in invites" :key="invite.code" class="flex items-center justify-between gap-3 px-4 py-2">
+          <span class="font-mono text-xs text-subtle">{{ invite.code }}</span>
+          <span :class="invite.used_by_name ? 'text-fg' : 'text-muted'">{{ inviteStatus(invite) }}</span>
+        </li>
+      </ul>
+    </section>
+
+    <section class="mt-6">
       <h2 class="mb-2 text-sm font-medium text-muted">Fichas</h2>
       <draggable
         :list="routine.workouts"
@@ -125,7 +211,6 @@ async function logout() {
         Restaurar backup…
       </button>
       <input ref="fileInput" type="file" accept="application/json,.json" class="hidden" @change="importBackup" />
-      <button type="button" class="mt-4 rounded-xl px-4 py-3 text-left text-muted" @click="logout">Sair</button>
     </section>
   </div>
 </template>

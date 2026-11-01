@@ -4,12 +4,51 @@ Primary keys are client-generated UUID strings so the PWA can create
 records while offline and replay them idempotently later.
 """
 
-from datetime import date
+from datetime import date, datetime
 
-from sqlalchemy import JSON, Date, Float, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import JSON, Boolean, Date, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
+
+
+class User(Base):
+    """An account; every workout belongs to exactly one user."""
+
+    __tablename__ = "app_user"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    email: Mapped[str] = mapped_column(String(254), unique=True)
+    name: Mapped[str] = mapped_column(String(80))
+    password_hash: Mapped[str] = mapped_column(String(255))
+    is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime)
+
+
+class UserSession(Base):
+    """A login on one device, looked up by the SHA-256 of the cookie token."""
+
+    __tablename__ = "user_session"
+
+    token_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("app_user.id", ondelete="CASCADE"), index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime)
+
+    user: Mapped[User] = relationship()
+
+
+class Invite(Base):
+    """A single-use signup code created by an admin."""
+
+    __tablename__ = "invite"
+
+    code: Mapped[str] = mapped_column(String(32), primary_key=True)
+    created_by_id: Mapped[str] = mapped_column(ForeignKey("app_user.id", ondelete="CASCADE"))
+    used_by_id: Mapped[str | None] = mapped_column(ForeignKey("app_user.id", ondelete="SET NULL"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime)
+    expires_at: Mapped[datetime] = mapped_column(DateTime)
+
+    used_by: Mapped[User | None] = relationship(foreign_keys=[used_by_id])
 
 
 class Workout(Base):
@@ -18,6 +57,8 @@ class Workout(Base):
     __tablename__ = "workout"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    # Nullable only so data created before accounts existed survives until the first signup claims it.
+    user_id: Mapped[str | None] = mapped_column(ForeignKey("app_user.id", ondelete="CASCADE"), index=True, nullable=True)
     name: Mapped[str] = mapped_column(String(120))
     position: Mapped[int] = mapped_column(Integer, default=0)
 
