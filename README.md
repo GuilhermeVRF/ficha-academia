@@ -55,7 +55,9 @@ Testes: `cd backend && .venv/bin/pytest` (usam SQLite em memória, não precisam
 - **Colar ficha:** cole o texto (ex.: `Supino reto 4x10 40kg`, `Rosca 12,10,8 20kg`, linhas `Treino A` separam fichas) e confira a prévia.
 - **Editar:** `−`/`+` ou toque no número; salva sozinho. “Aplicar a todas” replica a série editada.
 - **Remover série:** arraste a linha para a esquerda (com desfazer).
-- **Acompanhar treino:** toque no número da série para marcá-la como feita (local, zera no dia seguinte).
+- **Treinar:** "Iniciar treino" abre o modo treino com cronômetro; toque no número da série para marcá-la como feita (começa o descanso). "Finalizar" grava a sessão, que aparece no calendário da tela inicial na cor da ficha.
+- **Calendário:** a tela inicial sugere o próximo treino da rotação e mostra treinos da semana, semanas seguidas e o mês; toque num dia para ver os treinos dele.
+- **Cores:** cada ficha tem uma cor de anilha; toque na bolinha para trocar.
 - **Histórico:** toque no nome do exercício.
 - **Offline:** edições ficam numa fila e sincronizam quando a conexão volta.
 - **Backup:** Ajustes → Exportar/Restaurar JSON (só as suas fichas).

@@ -22,7 +22,10 @@ export const useAuthStore = defineStore('auth', () => {
   async function load() {
     const cached = await get<User>(USER_KEY).catch(() => undefined)
     try {
-      remember(await request<User>('GET', '/auth/me'))
+      const current = await request<User>('GET', '/auth/me')
+      // The cookie may now belong to someone else (e.g. signed in from another tab).
+      if (cached && cached.id !== current.id) await clearLocalData()
+      remember(current)
     } catch (error) {
       user.value = error instanceof NetworkError ? (cached ?? null) : null
     }

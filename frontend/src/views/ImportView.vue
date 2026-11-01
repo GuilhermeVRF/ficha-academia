@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ApiError, request } from '@/lib/api'
 import { formatSets } from '@/lib/format'
 import { flush } from '@/lib/outbox'
@@ -19,6 +19,7 @@ Leg press 3x12`
 
 const routine = useRoutineStore()
 const ui = useUiStore()
+const route = useRoute()
 const router = useRouter()
 
 const text = ref('')
@@ -26,12 +27,9 @@ const preview = ref<ImportPreview | null>(null)
 const error = ref('')
 const busy = ref(false)
 
+/** Lines before any "Treino X" header go to the workout this screen was opened from. */
 function currentWorkoutId() {
-  try {
-    return localStorage.getItem('lastWorkout') ?? routine.workouts[0]?.id
-  } catch {
-    return routine.workouts[0]?.id
-  }
+  return typeof route.query.ficha === 'string' ? route.query.ficha : routine.workouts[0]?.id
 }
 
 async function send(dryRun: boolean) {
@@ -50,7 +48,7 @@ async function send(dryRun: boolean) {
     await routine.refresh()
     const total = result.workouts.reduce((sum, workout) => sum + workout.exercises.length, 0)
     ui.showToast(`${total} exercício${total === 1 ? '' : 's'} importado${total === 1 ? '' : 's'}`)
-    router.replace('/')
+    router.replace(typeof route.query.ficha === 'string' ? `/treino/${route.query.ficha}` : '/fichas')
   } catch (failure) {
     error.value = failure instanceof ApiError ? failure.message : (failure as Error).message || 'Sem conexão.'
   } finally {

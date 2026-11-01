@@ -1,8 +1,18 @@
 """Request and response models for the API."""
 
-from datetime import date, datetime
+from datetime import UTC, date, datetime
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, PlainSerializer
+
+PlateColor = Literal["red", "blue", "yellow", "green", "white"]
+PLATE_COLORS: tuple[PlateColor, ...] = ("red", "blue", "yellow", "green", "white")
+
+# The database stores naive UTC; always send it with an explicit offset so clients show local time.
+UtcDatetime = Annotated[
+    datetime,
+    PlainSerializer(lambda value: value if value.tzinfo else value.replace(tzinfo=UTC), return_type=datetime),
+]
 
 
 class SetData(BaseModel):
@@ -35,6 +45,7 @@ class WorkoutOut(BaseModel):
     id: str
     name: str
     position: int
+    color: PlateColor
     exercises: list[ExerciseOut]
 
 
@@ -43,12 +54,14 @@ class WorkoutCreate(BaseModel):
 
     id: str = Field(min_length=1, max_length=36)
     name: str = Field(min_length=1, max_length=120)
+    color: PlateColor | None = None
 
 
 class WorkoutUpdate(BaseModel):
     """Partial update of a workout."""
 
     name: str | None = Field(default=None, min_length=1, max_length=120)
+    color: PlateColor | None = None
 
 
 class ExerciseCreate(BaseModel):
@@ -161,6 +174,59 @@ class ImportPreview(BaseModel):
     workouts: list[ImportedWorkout]
 
 
+class SessionSetData(BaseModel):
+    """One set of a session, done or not."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    exercise_id: str | None = Field(default=None, max_length=36)
+    exercise_name: str = Field(min_length=1, max_length=200)
+    exercise_position: int = Field(ge=0, le=1000)
+    set_index: int = Field(ge=0, le=100)
+    weight_kg: float = Field(ge=0, le=2000)
+    reps: int = Field(ge=0, le=1000)
+    done: bool
+
+
+class SessionIn(BaseModel):
+    """A finished session as sent by the client (idempotent PUT by client id)."""
+
+    workout_id: str | None = Field(default=None, max_length=36)
+    workout_name: str = Field(min_length=1, max_length=120)
+    started_at: AwareDatetime
+    finished_at: AwareDatetime
+    notes: str = Field(default="", max_length=2000)
+    sets: list[SessionSetData] = Field(max_length=500)
+
+
+class SessionSummary(BaseModel):
+    """What the calendar needs about a session."""
+
+    id: str
+    workout_id: str | None
+    workout_name: str
+    workout_color: PlateColor | None
+    started_at: UtcDatetime
+    finished_at: UtcDatetime
+    sets_done: int
+    volume_kg: float
+
+
+class SessionOut(SessionSummary):
+    """A session with all its sets."""
+
+    notes: str
+    sets: list[SessionSetData]
+
+
+class ExerciseSessionPoint(BaseModel):
+    """The sets done for one exercise in one session."""
+
+    session_id: str
+    started_at: UtcDatetime
+    sets: list[SetData]
+
+
 class SnapshotBackup(BaseModel):
     """A history entry inside a backup file."""
 
@@ -182,6 +248,7 @@ class WorkoutBackup(BaseModel):
     id: str
     name: str
     position: int
+    color: PlateColor = "red"
     exercises: list[ExerciseBackup]
 
 
@@ -190,3 +257,18 @@ class Backup(BaseModel):
 
     version: int = 1
     workouts: list[WorkoutBackup]
+    sessions: list["SessionBackup"] = []
+
+
+class SessionBackup(SessionIn):
+    """A session inside a backup file."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str = Field(min_length=1, max_length=36)
+    # Naive values (from the database) are UTC; files carry an explicit offset.
+    started_at: UtcDatetime
+    finished_at: UtcDatetime
+
+
+Backup.model_rebuild()

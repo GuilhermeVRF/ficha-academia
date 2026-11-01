@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from './stores/auth'
-import RoutineView from './views/RoutineView.vue'
+import HomeView from './views/HomeView.vue'
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -12,12 +12,17 @@ declare module 'vue-router' {
 export const router = createRouter({
   history: createWebHistory(),
   routes: [
-    { path: '/', component: RoutineView },
+    { path: '/', component: HomeView },
     { path: '/entrar', component: () => import('./views/LoginView.vue'), meta: { public: true } },
     { path: '/cadastro', component: () => import('./views/SignupView.vue'), meta: { public: true } },
+    { path: '/fichas', component: () => import('./views/FichasView.vue') },
+    { path: '/treino/:id', component: () => import('./views/RoutineView.vue'), props: true },
+    { path: '/treino/:id/sessao', component: () => import('./views/SessionView.vue'), props: true },
+    { path: '/sessao/:id', component: () => import('./views/SessionDetailView.vue'), props: true },
     { path: '/exercicio/:id', component: () => import('./views/ExerciseView.vue'), props: true },
     { path: '/importar', component: () => import('./views/ImportView.vue') },
     { path: '/ajustes', component: () => import('./views/SettingsView.vue') },
+    { path: '/:pathMatch(.*)*', redirect: '/' },
   ],
 })
 

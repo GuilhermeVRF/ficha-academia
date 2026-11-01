@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import Stepper from './Stepper.vue'
 import type { SetData } from '@/types'
 
-defineProps<{ set: SetData; index: number; done: boolean; weightStep: number }>()
+defineProps<{ set: SetData; index: number; done: boolean; checkable: boolean; weightStep: number }>()
 const emit = defineEmits<{ update: [set: SetData]; remove: []; toggle: [] }>()
 
 const SWIPE_THRESHOLD = 90
@@ -52,14 +52,18 @@ function onPointerUp() {
       @pointercancel="onPointerUp"
     >
       <button
+        v-if="checkable"
         type="button"
         class="grid h-9 w-9 shrink-0 place-items-center rounded-full font-display text-lg font-bold"
-        :class="done ? 'bg-accent text-on-accent' : 'bg-raised text-muted'"
+        :class="done ? 'bg-accent text-on-accent' : 'bg-raised text-muted ring-1 ring-line'"
         :aria-label="done ? `Desmarcar série ${index + 1}` : `Marcar série ${index + 1} como feita`"
         @click="emit('toggle')"
       >
         {{ done ? '✓' : index + 1 }}
       </button>
+      <span v-else class="grid h-9 w-6 shrink-0 place-items-center font-display text-lg font-bold text-subtle">
+        {{ index + 1 }}
+      </span>
       <Stepper
         class="flex-[1.15]"
         :model-value="set.weight_kg"

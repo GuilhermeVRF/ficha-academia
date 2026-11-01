@@ -3,10 +3,11 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import HistoryChart from '@/components/HistoryChart.vue'
 import { request } from '@/lib/api'
+import { formatLongDate } from '@/lib/dates'
 import { formatSets } from '@/lib/format'
 import { useRoutineStore } from '@/stores/routine'
 import { useUiStore } from '@/stores/ui'
-import type { HistoryPoint } from '@/types'
+import type { ExerciseSessionPoint, HistoryPoint } from '@/types'
 
 const props = defineProps<{ id: string }>()
 
@@ -17,10 +18,12 @@ const router = useRouter()
 const found = computed(() => routine.findExercise(props.id))
 const history = ref<HistoryPoint[] | null>(null)
 const historyError = ref(false)
+const sessions = ref<ExerciseSessionPoint[]>([])
 
 onMounted(async () => {
   try {
     history.value = await request<HistoryPoint[]>('GET', `/exercises/${props.id}/history`)
+    sessions.value = await request<ExerciseSessionPoint[]>('GET', `/exercises/${props.id}/sessions`)
   } catch {
     historyError.value = true
   }
@@ -46,9 +49,10 @@ function move(event: Event) {
 
 function remove() {
   const name = found.value?.exercise.name
+  const workoutId = found.value?.workout.id
   const undo = routine.deleteExercise(props.id)
   ui.showToast(`"${name}" removido`, 'Desfazer', undo)
-  router.replace('/')
+  router.replace(workoutId ? `/treino/${workoutId}` : '/fichas')
 }
 
 
@@ -89,6 +93,18 @@ function formatDate(isoDate: string) {
           <li v-for="point in [...history].reverse()" :key="point.date" class="flex justify-between gap-4 py-2">
             <span class="text-muted">{{ formatDate(point.date) }}</span>
             <span class="text-right tabular-nums text-fg">{{ formatSets(point.sets) }}</span>
+          </li>
+        </ul>
+      </section>
+
+      <section v-if="sessions.length" class="mt-6">
+        <h2 class="mb-2 text-sm font-medium text-muted">Últimos treinos</h2>
+        <ul class="divide-y divide-line text-sm">
+          <li v-for="point in sessions" :key="point.session_id">
+            <RouterLink :to="`/sessao/${point.session_id}`" class="flex justify-between gap-4 py-2">
+              <span class="text-muted first-letter:uppercase">{{ formatLongDate(new Date(point.started_at)) }}</span>
+              <span class="text-right tabular-nums text-fg">{{ formatSets(point.sets) }}</span>
+            </RouterLink>
           </li>
         </ul>
       </section>

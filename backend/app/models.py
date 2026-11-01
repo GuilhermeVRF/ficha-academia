@@ -61,6 +61,7 @@ class Workout(Base):
     user_id: Mapped[str | None] = mapped_column(ForeignKey("app_user.id", ondelete="CASCADE"), index=True, nullable=True)
     name: Mapped[str] = mapped_column(String(120))
     position: Mapped[int] = mapped_column(Integer, default=0)
+    color: Mapped[str] = mapped_column(String(16), default="red")
 
     exercises: Mapped[list["Exercise"]] = relationship(
         back_populates="workout",
@@ -114,3 +115,47 @@ class ExerciseSnapshot(Base):
     exercise_id: Mapped[str] = mapped_column(ForeignKey("exercise.id", ondelete="CASCADE"), index=True)
     date: Mapped[date] = mapped_column(Date)
     sets: Mapped[list[dict]] = mapped_column(JSON)
+
+
+class WorkoutSession(Base):
+    """One time the user actually trained, from "Iniciar" to "Finalizar".
+
+    Names are copied so the calendar and history survive renaming or deleting
+    the workout and its exercises.
+    """
+
+    __tablename__ = "workout_session"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("app_user.id", ondelete="CASCADE"), index=True)
+    workout_id: Mapped[str | None] = mapped_column(ForeignKey("workout.id", ondelete="SET NULL"), nullable=True)
+    workout_name: Mapped[str] = mapped_column(String(120))
+    started_at: Mapped[datetime] = mapped_column(DateTime, index=True)
+    finished_at: Mapped[datetime] = mapped_column(DateTime)
+    notes: Mapped[str] = mapped_column(Text, default="")
+
+    workout: Mapped[Workout | None] = relationship()
+    sets: Mapped[list["SessionSet"]] = relationship(
+        cascade="all, delete-orphan",
+        order_by="[SessionSet.exercise_position, SessionSet.set_index]",
+    )
+
+
+class SessionSet(Base):
+    """One set as performed (or skipped) during a session."""
+
+    __tablename__ = "session_set"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    session_id: Mapped[str] = mapped_column(ForeignKey("workout_session.id", ondelete="CASCADE"), index=True)
+    exercise_id: Mapped[str | None] = mapped_column(
+        ForeignKey("exercise.id", ondelete="SET NULL"),
+        index=True,
+        nullable=True,
+    )
+    exercise_name: Mapped[str] = mapped_column(String(200))
+    exercise_position: Mapped[int] = mapped_column(Integer)
+    set_index: Mapped[int] = mapped_column(Integer)
+    weight_kg: Mapped[float] = mapped_column(Float)
+    reps: Mapped[int] = mapped_column(Integer)
+    done: Mapped[bool] = mapped_column(Boolean)

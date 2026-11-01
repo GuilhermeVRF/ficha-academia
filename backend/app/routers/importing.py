@@ -8,14 +8,16 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.auth import CurrentUser
 from app.db import SessionDep
-from app.models import Exercise, ExerciseSet, ExerciseSnapshot, User, Workout
-from app.routers.workouts import next_workout_position
+from app.models import Exercise, ExerciseSet, ExerciseSnapshot, SessionSet, User, Workout, WorkoutSession
+from app.routers.sessions import to_naive_utc
+from app.routers.workouts import next_workout_color, next_workout_position
 from app.schemas import (
     Backup,
     ImportedExercise,
     ImportedWorkout,
     ImportPreview,
     ImportTextRequest,
+    SessionBackup,
     SetData,
     WorkoutBackup,
 )
@@ -115,6 +117,7 @@ def _get_or_create_workout(session: Session, user: User, block: ImportedWorkout)
         user_id=user.id,
         name=block.name,
         position=next_workout_position(session, user),
+        color=next_workout_color(session, user),
     )
     session.add(workout)
     session.flush()
@@ -123,7 +126,7 @@ def _get_or_create_workout(session: Session, user: User, block: ImportedWorkout)
 
 @router.get("/export", response_model=Backup)
 def export_backup(user: CurrentUser, session: SessionDep) -> Backup:
-    """Dump the user's workouts, exercises, sets and history."""
+    """Dump the user's workouts, exercises, sets, history and sessions."""
     workouts = session.scalars(
         select(Workout)
         .where(Workout.user_id == user.id)
@@ -133,7 +136,13 @@ def export_backup(user: CurrentUser, session: SessionDep) -> Backup:
         )
         .order_by(Workout.position)
     )
-    return Backup.model_validate({"workouts": list(workouts)}, from_attributes=True)
+    sessions = session.scalars(
+        select(WorkoutSession)
+        .where(WorkoutSession.user_id == user.id)
+        .options(selectinload(WorkoutSession.sets))
+        .order_by(WorkoutSession.started_at)
+    )
+    return Backup.model_validate({"workouts": list(workouts), "sessions": list(sessions)}, from_attributes=True)
 
 
 @router.post("/import-json", status_code=status.HTTP_204_NO_CONTENT)
@@ -146,22 +155,30 @@ def import_backup(backup: Backup, user: CurrentUser, session: SessionDep) -> Non
     """
     if backup.version != 1:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Versão de backup não suportada")
-    for workout in session.scalars(select(Workout).where(Workout.user_id == user.id)):
-        session.delete(workout)
+    for model in (WorkoutSession, Workout):
+        for row in session.scalars(select(model).where(model.user_id == user.id)):
+            session.delete(row)
     session.flush()
     if _ids_taken(session, backup):
         raise HTTPException(status.HTTP_409_CONFLICT, "Este backup pertence a outra conta.")
     for workout_data in backup.workouts:
         session.add(_workout_from_backup(workout_data, user))
+    session.flush()
+    restored_exercises = {exercise.id for workout in backup.workouts for exercise in workout.exercises}
+    restored_workouts = {workout.id for workout in backup.workouts}
+    for session_data in backup.sessions:
+        session.add(_session_from_backup(session_data, user, restored_workouts, restored_exercises))
 
 
 def _ids_taken(session: Session, backup: Backup) -> bool:
-    """Whether any workout or exercise id in the backup still exists (after the user's own were removed)."""
+    """Whether any id in the backup still exists (after the user's own data was removed)."""
     workout_ids = [workout.id for workout in backup.workouts]
     exercise_ids = [exercise.id for workout in backup.workouts for exercise in workout.exercises]
-    taken_workouts = session.scalar(select(func.count()).select_from(Workout).where(Workout.id.in_(workout_ids)))
-    taken_exercises = session.scalar(select(func.count()).select_from(Exercise).where(Exercise.id.in_(exercise_ids)))
-    return bool(taken_workouts or taken_exercises)
+    session_ids = [item.id for item in backup.sessions]
+    return any(
+        session.scalar(select(func.count()).select_from(model).where(model.id.in_(ids)))
+        for model, ids in ((Workout, workout_ids), (Exercise, exercise_ids), (WorkoutSession, session_ids))
+    )
 
 
 def _workout_from_backup(data: WorkoutBackup, user: User) -> Workout:
@@ -171,6 +188,7 @@ def _workout_from_backup(data: WorkoutBackup, user: User) -> Workout:
         user_id=user.id,
         name=data.name,
         position=data.position,
+        color=data.color,
         exercises=[
             Exercise(
                 id=exercise.id,
@@ -188,5 +206,30 @@ def _workout_from_backup(data: WorkoutBackup, user: User) -> Workout:
                 ],
             )
             for exercise in data.exercises
+        ],
+    )
+
+
+def _session_from_backup(
+    data: SessionBackup,
+    user: User,
+    workout_ids: set[str],
+    exercise_ids: set[str],
+) -> WorkoutSession:
+    """Rebuild a session, keeping links only to workouts and exercises restored with it."""
+    return WorkoutSession(
+        id=data.id,
+        user_id=user.id,
+        workout_id=data.workout_id if data.workout_id in workout_ids else None,
+        workout_name=data.workout_name,
+        started_at=to_naive_utc(data.started_at),
+        finished_at=to_naive_utc(data.finished_at),
+        notes=data.notes,
+        sets=[
+            SessionSet(
+                **item.model_dump(exclude={"exercise_id"}),
+                exercise_id=item.exercise_id if item.exercise_id in exercise_ids else None,
+            )
+            for item in data.sets
         ],
     )

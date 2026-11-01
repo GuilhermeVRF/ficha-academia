@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import draggable from 'vuedraggable'
 import { useRouter } from 'vue-router'
 import { ApiError, request } from '@/lib/api'
 import { flush } from '@/lib/outbox'
 import { useAuthStore } from '@/stores/auth'
+import { useHistoryStore } from '@/stores/history'
 import { useRoutineStore } from '@/stores/routine'
 import { useUiStore } from '@/stores/ui'
 import type { Invite } from '@/types'
@@ -12,6 +12,7 @@ import type { Invite } from '@/types'
 const WEIGHT_STEPS = [0.5, 1, 1.25, 2, 2.5, 5]
 
 const auth = useAuthStore()
+const history = useHistoryStore()
 const routine = useRoutineStore()
 const ui = useUiStore()
 const router = useRouter()
@@ -63,19 +64,6 @@ function inviteStatus(invite: Invite) {
   return `Válido até ${expires.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}`
 }
 
-function rename(workoutId: string, event: Event) {
-  const name = (event.target as HTMLInputElement).value.trim()
-  if (name) routine.renameWorkout(workoutId, name)
-}
-
-function removeWorkout(workoutId: string, name: string) {
-  if (confirm(`Apagar a ficha "${name}" com todos os exercícios e histórico?`)) routine.deleteWorkout(workoutId)
-}
-
-function onReorder() {
-  routine.reorderWorkouts(routine.workouts.map((item) => item.id))
-}
-
 async function exportBackup() {
   try {
     await flush()
@@ -94,10 +82,12 @@ async function exportBackup() {
 async function importBackup(event: Event) {
   const file = (event.target as HTMLInputElement).files?.[0]
   if (!file) return
-  if (!confirm('Restaurar o backup vai SUBSTITUIR todas as suas fichas atuais. Continuar?')) return
+  if (!confirm('Restaurar o backup vai SUBSTITUIR suas fichas e treinos atuais. Continuar?')) return
   try {
     await request('POST', '/import-json', JSON.parse(await file.text()))
     await routine.refresh()
+    history.reset()
+    await history.init()
     ui.showToast('Backup restaurado')
   } catch (failure) {
     ui.showToast(failure instanceof ApiError ? failure.message : 'Arquivo inválido ou sem conexão')
@@ -118,7 +108,7 @@ async function logout() {
 <template>
   <div class="pt-safe pb-safe mx-auto max-w-lg px-4">
     <header class="flex items-center gap-2 py-3">
-      <button type="button" class="-ml-2 px-2 text-2xl text-muted" aria-label="Voltar" @click="router.back()">‹</button>
+      <RouterLink to="/" class="-ml-2 px-2 text-2xl text-muted" aria-label="Voltar para o início">‹</RouterLink>
       <h1 class="font-display text-2xl font-extrabold tracking-wide uppercase">Ajustes</h1>
     </header>
 
@@ -157,35 +147,6 @@ async function logout() {
     </section>
 
     <section class="mt-6">
-      <h2 class="mb-2 text-sm font-medium text-muted">Fichas</h2>
-      <draggable
-        :list="routine.workouts"
-        item-key="id"
-        handle=".drag-handle"
-        class="flex flex-col gap-2"
-        @end="onReorder"
-      >
-        <template #item="{ element }">
-          <div class="flex items-center gap-2 rounded-xl bg-surface px-3 py-1">
-            <span class="drag-handle cursor-grab touch-none text-faint select-none">⋮⋮</span>
-            <input
-              :value="element.name"
-              class="min-w-0 flex-1 bg-transparent py-2 outline-none"
-              enterkeyhint="done"
-              @blur="rename(element.id, $event)"
-              @keydown.enter="($event.target as HTMLInputElement).blur()"
-            />
-            <span class="text-xs text-subtle">{{ element.exercises.length }} ex.</span>
-            <button type="button" class="px-2 text-danger" aria-label="Apagar ficha" @click="removeWorkout(element.id, element.name)">
-              ✕
-            </button>
-          </div>
-        </template>
-      </draggable>
-      <p v-if="!routine.workouts.length" class="text-sm text-subtle">Nenhuma ficha.</p>
-    </section>
-
-    <section class="mt-6">
       <h2 class="mb-2 text-sm font-medium text-muted">Passo do botão de carga</h2>
       <div class="flex flex-wrap gap-2">
         <button
@@ -211,6 +172,7 @@ async function logout() {
         Restaurar backup…
       </button>
       <input ref="fileInput" type="file" accept="application/json,.json" class="hidden" @change="importBackup" />
+      <p class="text-xs text-subtle">O backup inclui suas fichas, o histórico de cargas e os treinos do calendário.</p>
     </section>
   </div>
 </template>
