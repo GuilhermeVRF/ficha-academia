@@ -3,10 +3,14 @@ import { watch } from 'vue'
 import { useRouter } from 'vue-router'
 import AppToast from './components/AppToast.vue'
 import { useAuthStore } from './stores/auth'
+import { useHistoryStore } from './stores/history'
 import { useRoutineStore } from './stores/routine'
+import { useSessionStore } from './stores/session'
 
 const auth = useAuthStore()
+const history = useHistoryStore()
 const routine = useRoutineStore()
+const session = useSessionStore()
 const router = useRouter()
 
 watch(
@@ -14,9 +18,12 @@ watch(
   (id) => {
     if (id) {
       routine.unauthorized = false
-      void routine.init()
+      void session.init()
+      void routine.init().then(() => history.init())
     } else {
       routine.reset()
+      history.reset()
+      session.reset()
     }
   },
   { immediate: true },

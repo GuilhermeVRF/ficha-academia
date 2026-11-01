@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from app import auth
 from app.config import settings
 from app.db import SessionLocal
-from app.routers import importing, invites, workouts
+from app.routers import importing, invites, sessions, workouts
 from app.services.admin import ensure_admin
 
 
@@ -33,6 +33,7 @@ api.include_router(auth.router)
 api.include_router(invites.router)
 api.include_router(workouts.router, dependencies=[Depends(auth.current_user)])
 api.include_router(importing.router, dependencies=[Depends(auth.current_user)])
+api.include_router(sessions.router, dependencies=[Depends(auth.current_user)])
 app.include_router(api)
 
 

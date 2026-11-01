@@ -3,7 +3,8 @@ import { get, set } from 'idb-keyval'
 import { computed, ref, watch } from 'vue'
 import { ApiError, NetworkError, request } from '@/lib/api'
 import { enqueue, flush, initOutbox } from '@/lib/outbox'
-import type { Exercise, SetData, Workout } from '@/types'
+import { unusedPlateColor } from '@/lib/plates'
+import type { Exercise, PlateColor, SetData, Workout } from '@/types'
 
 export const TREE_KEY = 'tree'
 const DEFAULT_SETS: SetData[] = [
@@ -78,10 +79,18 @@ export const useRoutineStore = defineStore('routine', () => {
   }
 
   function addWorkout(name: string) {
-    const workout: Workout = { id: crypto.randomUUID(), name, position: workouts.value.length, exercises: [] }
+    const color = unusedPlateColor(workouts.value.map((item) => item.color))
+    const workout: Workout = { id: crypto.randomUUID(), name, position: workouts.value.length, color, exercises: [] }
     workouts.value.push(workout)
-    enqueue('POST', '/workouts', { id: workout.id, name })
+    enqueue('POST', '/workouts', { id: workout.id, name, color })
     return workout
+  }
+
+  function setWorkoutColor(workoutId: string, color: PlateColor) {
+    const workout = workouts.value.find((item) => item.id === workoutId)
+    if (!workout) return
+    workout.color = color
+    enqueue('PATCH', `/workouts/${workoutId}`, { color })
   }
 
   function renameWorkout(workoutId: string, name: string) {
@@ -182,6 +191,7 @@ export const useRoutineStore = defineStore('routine', () => {
     findExercise,
     addWorkout,
     renameWorkout,
+    setWorkoutColor,
     deleteWorkout,
     reorderWorkouts,
     addExercise,

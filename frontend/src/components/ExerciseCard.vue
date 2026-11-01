@@ -2,21 +2,24 @@
 import { computed, ref } from 'vue'
 import SetRow from './SetRow.vue'
 import { formatWeight } from '@/lib/format'
-import { useDoneSets } from '@/composables/useDoneSets'
 import { useRoutineStore } from '@/stores/routine'
+import { useSessionStore } from '@/stores/session'
 import { useUiStore } from '@/stores/ui'
 import type { Exercise, SetData } from '@/types'
 
-const props = defineProps<{ exercise: Exercise }>()
+/** `tracking`: a workout is in progress, so sets can be checked off. */
+const props = defineProps<{ exercise: Exercise; tracking?: boolean }>()
 
 const routine = useRoutineStore()
 const ui = useUiStore()
-const { isDone, toggle } = useDoneSets()
+const session = useSessionStore()
+
+const isDone = (index: number) => Boolean(props.tracking) && session.isDone(props.exercise.id, index)
 
 /** Index of the last edited set, offered as the source for "apply to all". */
 const lastEdited = ref<number | null>(null)
 
-const allDone = computed(() => props.exercise.sets.length > 0 && props.exercise.sets.every((_, i) => isDone(props.exercise.id, i)))
+const allDone = computed(() => props.exercise.sets.length > 0 && props.exercise.sets.every((_, i) => isDone(i)))
 const applySource = computed(() => {
   if (lastEdited.value === null) return null
   const source = props.exercise.sets[lastEdited.value]
@@ -75,11 +78,12 @@ function applyToAll() {
         :key="index"
         :set="item"
         :index="index"
-        :done="isDone(exercise.id, index)"
+        :done="isDone(index)"
+        :checkable="Boolean(tracking)"
         :weight-step="ui.weightStep"
         @update="updateSet(index, $event)"
         @remove="removeSet(index)"
-        @toggle="toggle(exercise.id, index)"
+        @toggle="session.toggle(exercise.id, index, exercise.rest_seconds)"
       />
     </div>
 

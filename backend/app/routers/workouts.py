@@ -10,6 +10,7 @@ from app.auth import CurrentUser
 from app.db import SessionDep
 from app.models import Exercise, ExerciseSet, User, Workout
 from app.schemas import (
+    PLATE_COLORS,
     ExerciseCreate,
     ExerciseOut,
     ExerciseUpdate,
@@ -46,7 +47,13 @@ def create_workout(payload: WorkoutCreate, user: CurrentUser, session: SessionDe
     if existing is not None:
         _ensure_owner(existing, user)
         return existing
-    workout = Workout(id=payload.id, user_id=user.id, name=payload.name, position=next_workout_position(session, user))
+    workout = Workout(
+        id=payload.id,
+        user_id=user.id,
+        name=payload.name,
+        position=next_workout_position(session, user),
+        color=payload.color or next_workout_color(session, user),
+    )
     session.add(workout)
     session.flush()
     return workout
@@ -68,10 +75,12 @@ def update_workout(
     user: CurrentUser,
     session: SessionDep,
 ) -> Workout:
-    """Rename a workout."""
+    """Rename a workout or change its color."""
     workout = _get_workout(session, user, workout_id)
     if payload.name is not None:
         workout.name = payload.name
+    if payload.color is not None:
+        workout.color = payload.color
     return workout
 
 
@@ -187,6 +196,13 @@ def next_workout_position(session: Session, user: User) -> int:
     return session.scalar(
         select(func.coalesce(func.max(Workout.position) + 1, 0)).where(Workout.user_id == user.id)
     )
+
+
+def next_workout_color(session: Session, user: User) -> str:
+    """First plate color the user isn't using yet, cycling once all are taken."""
+    used = list(session.scalars(select(Workout.color).where(Workout.user_id == user.id)))
+    free = [color for color in PLATE_COLORS if color not in used]
+    return free[0] if free else PLATE_COLORS[len(used) % len(PLATE_COLORS)]
 
 
 def _get_workout(session: Session, user: User, workout_id: str) -> Workout:
