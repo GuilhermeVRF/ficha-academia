@@ -52,13 +52,24 @@ Testes: `cd backend && .venv/bin/pytest` (usam SQLite em memória, não precisam
 
 ## Uso
 
-- **Colar ficha:** cole o texto (ex.: `Supino reto 4x10 40kg`, `Rosca 12,10,8 20kg`, linhas `Treino A` separam fichas) e confira a prévia.
+- **Montar a ficha:** em Fichas, crie uma ficha e toque em "Adicionar exercícios": busque na biblioteca (nome em português ou inglês, sem se preocupar com acentos), filtre por grupo muscular e marque vários de uma vez. Se não achar, crie o seu. "Duplicar ficha" copia uma ficha inteira.
 - **Editar:** `−`/`+` ou toque no número; salva sozinho. “Aplicar a todas” replica a série editada.
 - **Remover série:** arraste a linha para a esquerda (com desfazer).
 - **Treinar:** "Iniciar treino" abre o modo treino com cronômetro; toque no número da série para marcá-la como feita (começa o descanso). "Finalizar" grava a sessão, que aparece no calendário da tela inicial na cor da ficha.
 - **Calendário:** a tela inicial sugere o próximo treino da rotação e mostra treinos da semana, semanas seguidas e o mês; toque num dia para ver os treinos dele.
 - **Cores:** cada ficha tem uma cor de anilha; toque na bolinha para trocar.
-- **Histórico:** toque no nome do exercício.
+- **Exercício:** toque no nome para ver as fotos do movimento, o histórico de carga e os últimos treinos; ali dá para trocar ou adicionar a foto escolhendo na biblioteca.
 - **Offline:** edições ficam numa fila e sincronizam quando a conexão volta.
-- **Backup:** Ajustes → Exportar/Restaurar JSON (só as suas fichas).
-- **Convidar:** Ajustes → Gerar link de convite (só o admin).
+- **Backup:** Ajustes → Exportar/Restaurar JSON (suas fichas, treinos e exercícios próprios).
+- **Convidar:** Perfil → Gerar link de convite (só o admin).
+
+## Biblioteca de exercícios
+
+A biblioteca vem da [free-exercise-db](https://github.com/yuhonas/free-exercise-db) (domínio público): 589 exercícios de força, cada um com 2 fotos, servidas pelo jsDelivr a partir de um commit fixo. Os nomes em português ficam em `backend/scripts/catalog_pt.tsv`; para corrigir uma tradução, edite o arquivo e gere o JSON de novo:
+
+```bash
+cd backend && .venv/bin/python scripts/build_catalog.py
+```
+
+O resultado (`backend/app/data/exercises.json`) é versionado e carregado no banco pela migração `0004`. Uma atualização futura da biblioteca entra numa migração nova.
+

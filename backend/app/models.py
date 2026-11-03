@@ -51,6 +51,26 @@ class Invite(Base):
     used_by: Mapped[User | None] = relationship(foreign_keys=[used_by_id])
 
 
+class CatalogExercise(Base):
+    """An exercise people can pick: from the shared library (no owner) or created by one user."""
+
+    __tablename__ = "catalog_exercise"
+
+    id: Mapped[str] = mapped_column(String(80), primary_key=True)
+    user_id: Mapped[str | None] = mapped_column(
+        ForeignKey("app_user.id", ondelete="CASCADE"),
+        index=True,
+        nullable=True,
+    )
+    name_pt: Mapped[str] = mapped_column(String(200))
+    name_en: Mapped[str] = mapped_column(String(200), default="")
+    muscle_group: Mapped[str] = mapped_column(String(20))
+    equipment: Mapped[str] = mapped_column(String(40), default="")
+    images: Mapped[list[str]] = mapped_column(JSON, default=list)
+    # Lowercase, accent-free Portuguese + English names, matched with LIKE on every database.
+    search_text: Mapped[str] = mapped_column(String(500))
+
+
 class Workout(Base):
     """A routine division (e.g. "Treino A")."""
 
@@ -81,8 +101,14 @@ class Exercise(Base):
     position: Mapped[int] = mapped_column(Integer, default=0)
     notes: Mapped[str] = mapped_column(Text, default="")
     rest_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    catalog_id: Mapped[str | None] = mapped_column(
+        ForeignKey("catalog_exercise.id", ondelete="SET NULL"),
+        index=True,
+        nullable=True,
+    )
 
     workout: Mapped[Workout] = relationship(back_populates="exercises")
+    catalog: Mapped["CatalogExercise | None"] = relationship()
     sets: Mapped[list["ExerciseSet"]] = relationship(
         cascade="all, delete-orphan",
         order_by="ExerciseSet.position",
@@ -91,6 +117,11 @@ class Exercise(Base):
         cascade="all, delete-orphan",
         order_by="ExerciseSnapshot.date",
     )
+
+    @property
+    def images(self) -> list[str]:
+        """Photos of the library exercise this one came from, if any."""
+        return list(self.catalog.images) if self.catalog else []
 
 
 class ExerciseSet(Base):

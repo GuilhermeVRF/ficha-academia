@@ -90,13 +90,3 @@ def test_should_refuse_restoring_another_accounts_backup(client: TestClient, fri
 
     assert response.status_code == 409
     assert client.get("/api/workouts").json()[0]["exercises"][0]["name"] == "Supino"
-
-
-@pytest.mark.usefixtures("admin_data")
-def test_should_import_text_only_into_own_workouts(client: TestClient, friend_client: TestClient) -> None:
-    friend_client.post("/api/import-text", json={"text": "Rosca 3x10 12kg", "workout_id": "w1"})
-    friend_client.post("/api/import-text", json={"text": "A\nRosca 3x10 12kg"})
-
-    admin_exercises = client.get("/api/workouts").json()[0]["exercises"]
-    assert [exercise["name"] for exercise in admin_exercises] == ["Supino"]
-    assert len(friend_client.get("/api/workouts").json()) == 2

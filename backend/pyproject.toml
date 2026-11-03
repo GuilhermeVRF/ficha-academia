@@ -28,5 +28,9 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 include = ["app*"]
 
+# Ship the exercise library with the package (read by migration 0004 and the app).
+[tool.setuptools.package-data]
+app = ["data/*.json"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -35,6 +35,8 @@ class ExerciseOut(BaseModel):
     notes: str
     rest_seconds: int | None
     sets: list[SetData]
+    catalog_id: str | None = None
+    images: list[str] = []
 
 
 class WorkoutOut(BaseModel):
@@ -72,6 +74,7 @@ class ExerciseCreate(BaseModel):
     sets: list[SetData] = Field(max_length=50)
     notes: str = ""
     rest_seconds: int | None = None
+    catalog_id: str | None = Field(default=None, max_length=80)
 
 
 class ExerciseUpdate(BaseModel):
@@ -81,6 +84,7 @@ class ExerciseUpdate(BaseModel):
     notes: str | None = None
     rest_seconds: int | None = None
     workout_id: str | None = None
+    catalog_id: str | None = Field(default=None, max_length=80)
 
 
 class SetsReplace(BaseModel):
@@ -145,33 +149,31 @@ class InviteOut(BaseModel):
     used_by_name: str | None = None
 
 
-class ImportTextRequest(BaseModel):
-    """Bulk text import payload."""
-
-    text: str = Field(max_length=20000)
-    workout_id: str | None = None
+MuscleGroup = Literal[
+    "peito", "costas", "ombros", "biceps", "triceps", "antebraco", "pernas", "gluteos", "panturrilha", "abdomen"
+]
 
 
-class ImportedExercise(BaseModel):
-    """An exercise recognized by the text parser."""
+class CatalogItemOut(BaseModel):
+    """An exercise in the picker."""
 
+    id: str
     name: str
-    sets: list[SetData]
-    warning: str | None = None
+    name_en: str
+    muscle_group: str
+    equipment: str
+    images: list[str]
+    custom: bool
+    uses: int
 
 
-class ImportedWorkout(BaseModel):
-    """A workout block recognized by the text parser."""
+class CatalogCreate(BaseModel):
+    """A user's own exercise, for when the library doesn't have it (client-made id)."""
 
-    name: str
-    existing_id: str | None = None
-    exercises: list[ImportedExercise]
-
-
-class ImportPreview(BaseModel):
-    """Result of parsing (and optionally applying) a bulk import."""
-
-    workouts: list[ImportedWorkout]
+    id: str = Field(min_length=1, max_length=36)
+    name: str = Field(min_length=1, max_length=200)
+    muscle_group: MuscleGroup = "peito"
+    equipment: str = Field(default="", max_length=40)
 
 
 class SessionSetData(BaseModel):
@@ -258,6 +260,7 @@ class Backup(BaseModel):
     version: int = 1
     workouts: list[WorkoutBackup]
     sessions: list["SessionBackup"] = []
+    custom_exercises: list[CatalogCreate] = []
 
 
 class SessionBackup(SessionIn):

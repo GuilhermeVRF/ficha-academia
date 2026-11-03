@@ -3,31 +3,47 @@ import { computed, ref } from 'vue'
 import draggable from 'vuedraggable'
 import { useRouter } from 'vue-router'
 import ExerciseCard from '@/components/ExerciseCard.vue'
+import ExercisePicker from '@/components/ExercisePicker.vue'
 import { PLATE_LABELS, nextPlateColor, plateBg } from '@/lib/plates'
 import { useRoutineStore } from '@/stores/routine'
 import { useSessionStore } from '@/stores/session'
+import { useUiStore } from '@/stores/ui'
+import type { CatalogItem } from '@/types'
 
 const props = defineProps<{ id: string }>()
 
 const routine = useRoutineStore()
 const session = useSessionStore()
+const ui = useUiStore()
 const router = useRouter()
 
 const workout = computed(() => routine.workouts.find((item) => item.id === props.id))
 const otherActive = computed(() => session.active && session.active.workout_id !== props.id)
 
-const newExerciseName = ref('')
+const picking = ref(false)
 
 function rename(event: Event) {
   const name = (event.target as HTMLInputElement).value.trim()
   if (workout.value && name && name !== workout.value.name) routine.renameWorkout(workout.value.id, name)
 }
 
-function addExercise() {
-  const name = newExerciseName.value.trim()
-  if (!name || !workout.value) return
-  routine.addExercise(workout.value.id, name)
-  newExerciseName.value = ''
+function addFromLibrary(items: CatalogItem[]) {
+  picking.value = false
+  if (!workout.value) return
+  for (const item of items) routine.addExercise(workout.value.id, item.name, item)
+}
+
+function addByName(name: string) {
+  picking.value = false
+  if (workout.value) routine.addExercise(workout.value.id, name)
+}
+
+function duplicate() {
+  if (!workout.value) return
+  const copy = routine.duplicateWorkout(workout.value.id)
+  if (!copy) return
+  ui.showToast(`"${copy.name}" criada`)
+  void router.push(`/treino/${copy.id}`)
 }
 
 function onReorder() {
@@ -92,33 +108,24 @@ function remove() {
         </template>
       </draggable>
 
-      <form class="flex gap-2" @submit.prevent="addExercise">
-        <input
-          v-model="newExerciseName"
-          list="exercise-names"
-          placeholder="Adicionar exercício…"
-          aria-label="Nome do novo exercício"
-          enterkeyhint="done"
-          autocapitalize="sentences"
-          class="min-w-0 flex-1 rounded-xl bg-surface px-4 py-3 outline-none focus:ring-2 focus:ring-accent"
-        />
-        <button
-          :disabled="!newExerciseName.trim()"
-          class="rounded-xl bg-accent px-4 font-semibold text-on-accent disabled:opacity-30"
-          aria-label="Adicionar exercício"
-        >
-          +
-        </button>
-        <datalist id="exercise-names">
-          <option v-for="name in routine.exerciseNames" :key="name" :value="name" />
-        </datalist>
-      </form>
+      <button
+        type="button"
+        class="rounded-2xl border border-dashed border-line py-4 font-semibold text-accent-ink"
+        @click="picking = true"
+      >
+        + Adicionar exercícios
+      </button>
+      <p v-if="!workout.exercises.length" class="px-4 text-center text-sm text-subtle">
+        Escolha na biblioteca, com foto de cada exercício, ou crie os seus.
+      </p>
 
       <div class="flex justify-between px-1 text-sm text-subtle">
-        <RouterLink :to="{ path: '/importar', query: { ficha: workout.id } }">Colar vários</RouterLink>
+        <button type="button" @click="duplicate">Duplicar ficha</button>
         <button type="button" class="text-danger" @click="remove">Apagar ficha</button>
       </div>
     </main>
+
+    <ExercisePicker v-if="picking" @pick="addFromLibrary" @pick-name="addByName" @close="picking = false" />
 
     <div v-if="workout" class="fixed inset-x-0 bottom-0 z-10 bg-gradient-to-t from-bg via-bg/95 to-transparent px-4 pt-6 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
       <div class="mx-auto max-w-lg">
