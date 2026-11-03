@@ -3,7 +3,7 @@ import { nextTick, ref } from 'vue'
 import draggable from 'vuedraggable'
 import { useRouter } from 'vue-router'
 import { relativeDays } from '@/lib/dates'
-import { PLATE_LABELS, nextPlateColor, plateBg } from '@/lib/plates'
+import { PLATE_LABELS, plateBg } from '@/lib/plates'
 import { useHistoryStore } from '@/stores/history'
 import { useRoutineStore } from '@/stores/routine'
 import type { Workout } from '@/types'
@@ -33,10 +33,6 @@ function create() {
 function lastTrained(workoutId: string) {
   const found = history.sessions.find((item) => item.workout_id === workoutId)
   return found ? relativeDays(new Date(found.started_at)) : 'nunca treinado'
-}
-
-function cycleColor(workout: Workout) {
-  routine.setWorkoutColor(workout.id, nextPlateColor(workout.color))
 }
 
 function onReorder() {
@@ -72,12 +68,11 @@ function onReorder() {
       <template #item="{ element }">
         <div class="flex items-center gap-3 rounded-2xl bg-surface py-2 pr-3 pl-2">
           <span class="drag-handle cursor-grab touch-none px-1 text-faint select-none" aria-label="Arrastar para reordenar">⋮⋮</span>
-          <button
-            type="button"
+          <span
             class="h-9 w-9 shrink-0 rounded-full ring-4 ring-bg"
             :class="plateBg(element.color)"
-            :aria-label="`Cor: ${PLATE_LABELS[element.color as Workout['color']]}. Toque para trocar`"
-            @click="cycleColor(element)"
+            role="img"
+            :aria-label="`Cor: ${PLATE_LABELS[element.color as Workout['color']]}`"
           />
           <RouterLink :to="`/treino/${element.id}`" class="flex min-w-0 flex-1 items-center gap-2 py-1">
             <span class="min-w-0 flex-1">
@@ -111,6 +106,5 @@ function onReorder() {
     >
       + Nova ficha
     </button>
-    <p v-if="routine.workouts.length" class="text-center text-xs text-subtle">Toque na bolinha para trocar a cor da ficha.</p>
   </div>
 </template>

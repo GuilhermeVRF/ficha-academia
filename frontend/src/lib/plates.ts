@@ -27,10 +27,6 @@ export function plateBg(color: PlateColor | null | undefined) {
   return color ? PLATE_BG[color] : NO_PLATE_BG
 }
 
-export function nextPlateColor(current: PlateColor) {
-  return PLATE_COLORS[(PLATE_COLORS.indexOf(current) + 1) % PLATE_COLORS.length]
-}
-
 /** First color not used yet, cycling once all are taken (mirrors the server rule). */
 export function unusedPlateColor(used: PlateColor[]) {
   return PLATE_COLORS.find((color) => !used.includes(color)) ?? PLATE_COLORS[used.length % PLATE_COLORS.length]
