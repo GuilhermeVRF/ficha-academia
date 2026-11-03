@@ -45,9 +45,8 @@ function onReorder() {
 </script>
 
 <template>
-  <div class="pt-safe pb-safe mx-auto flex max-w-lg flex-col gap-4 px-4">
+  <div class="pt-safe pb-nav mx-auto flex max-w-lg flex-col gap-4 px-4">
     <header class="flex items-center gap-2 pt-4">
-      <RouterLink to="/" class="-ml-2 px-2 text-2xl text-muted" aria-label="Voltar para o início">‹</RouterLink>
       <h1 class="flex-1 font-display text-3xl font-extrabold tracking-wide uppercase">Fichas</h1>
       <span v-if="routine.pending" class="text-xs text-warn" title="Alterações aguardando conexão">
         ● {{ routine.pending }} pendente{{ routine.pending > 1 ? 's' : '' }}
