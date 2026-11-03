@@ -3,8 +3,9 @@ import { computed, ref } from 'vue'
 import draggable from 'vuedraggable'
 import { useRouter } from 'vue-router'
 import ExerciseCard from '@/components/ExerciseCard.vue'
+import ColorPanel from '@/components/ColorPanel.vue'
 import ExercisePicker from '@/components/ExercisePicker.vue'
-import { PLATE_LABELS, nextPlateColor, plateBg } from '@/lib/plates'
+import { PLATE_LABELS, plateBg } from '@/lib/plates'
 import { useRoutineStore } from '@/stores/routine'
 import { useSessionStore } from '@/stores/session'
 import { useUiStore } from '@/stores/ui'
@@ -21,6 +22,7 @@ const workout = computed(() => routine.workouts.find((item) => item.id === props
 const otherActive = computed(() => session.active && session.active.workout_id !== props.id)
 
 const picking = ref(false)
+const choosingColor = ref(false)
 
 function rename(event: Event) {
   const name = (event.target as HTMLInputElement).value.trim()
@@ -77,8 +79,9 @@ function remove() {
           type="button"
           class="h-7 w-7 shrink-0 rounded-full ring-4 ring-bg"
           :class="plateBg(workout.color)"
-          :aria-label="`Cor: ${PLATE_LABELS[workout.color]}. Toque para trocar`"
-          @click="routine.setWorkoutColor(workout.id, nextPlateColor(workout.color))"
+          :aria-label="`Cor: ${PLATE_LABELS[workout.color]}. Escolher cor`"
+          :aria-expanded="choosingColor"
+          @click="choosingColor = !choosingColor"
         />
         <input
           :key="workout.id"
@@ -95,6 +98,24 @@ function remove() {
     <p v-if="!workout" class="mt-16 text-center text-subtle">Ficha não encontrada.</p>
 
     <main v-else class="flex flex-1 flex-col gap-3 px-3 pb-28">
+      <button
+        v-if="!choosingColor"
+        type="button"
+        class="flex items-center gap-2 self-start rounded-full bg-surface py-1.5 pr-3 pl-1.5 text-sm text-muted"
+        @click="choosingColor = true"
+      >
+        <span class="h-5 w-5 rounded-full" :class="plateBg(workout.color)" aria-hidden="true" />
+        Cor: {{ PLATE_LABELS[workout.color] }}
+      </button>
+      <div v-else class="flex flex-col gap-2">
+        <ColorPanel
+          :workout-id="workout.id"
+          :model-value="workout.color"
+          @update:model-value="routine.setWorkoutColor(workout.id, $event)"
+        />
+        <button type="button" class="self-end px-2 text-sm text-subtle" @click="choosingColor = false">Fechar</button>
+      </div>
+
       <draggable
         :list="workout.exercises"
         item-key="id"
