@@ -1,10 +1,10 @@
 import { defineStore } from 'pinia'
 import { get, set } from 'idb-keyval'
-import { computed, ref, watch } from 'vue'
+import { ref, watch } from 'vue'
 import { ApiError, NetworkError, request } from '@/lib/api'
 import { enqueue, flush, initOutbox } from '@/lib/outbox'
 import { unusedPlateColor } from '@/lib/plates'
-import type { Exercise, PlateColor, SetData, Workout } from '@/types'
+import type { CatalogItem, Exercise, PlateColor, SetData, Workout } from '@/types'
 
 export const TREE_KEY = 'tree'
 const DEFAULT_SETS: SetData[] = [
@@ -20,12 +20,6 @@ export const useRoutineStore = defineStore('routine', () => {
   const loaded = ref(false)
   const pending = ref(0)
   const unauthorized = ref(false)
-
-  const exerciseNames = computed(() => {
-    const names = new Set<string>()
-    for (const workout of workouts.value) for (const exercise of workout.exercises) names.add(exercise.name)
-    return [...names].sort((a, b) => a.localeCompare(b, 'pt-BR'))
-  })
 
   let watchingCache = false
 
@@ -110,28 +104,64 @@ export const useRoutineStore = defineStore('routine', () => {
     enqueue('PUT', '/workouts/order', { ids })
   }
 
-  /** Add an exercise, reusing the sets of an existing exercise with the same name. */
-  function addExercise(workoutId: string, name: string) {
+  /**
+   * Add an exercise from the library (or by name only), reusing the sets and
+   * rest of an existing exercise with the same library entry or name.
+   */
+  function addExercise(workoutId: string, name: string, catalog?: CatalogItem) {
     const workout = workouts.value.find((item) => item.id === workoutId)
     if (!workout) return
     const template = workouts.value
       .flatMap((item) => item.exercises)
-      .find((item) => item.name.toLowerCase() === name.toLowerCase())
+      .find((item) => (catalog && item.catalog_id === catalog.id) || item.name.toLowerCase() === name.toLowerCase())
     const exercise: Exercise = {
       id: crypto.randomUUID(),
       name,
       position: workout.exercises.length,
       notes: '',
-      rest_seconds: null,
+      rest_seconds: template?.rest_seconds ?? null,
       sets: clone(template?.sets ?? DEFAULT_SETS),
+      catalog_id: catalog?.id ?? null,
+      images: catalog?.images ?? [],
     }
     workout.exercises.push(exercise)
     enqueue('POST', `/workouts/${workoutId}/exercises`, {
       id: exercise.id,
       name,
       sets: exercise.sets,
+      rest_seconds: exercise.rest_seconds,
+      catalog_id: exercise.catalog_id,
     })
     return exercise
+  }
+
+  /** Point an exercise at a library entry (for its photos), or unlink it with null. */
+  function linkExercise(exerciseId: string, catalog: CatalogItem | null) {
+    const found = findExercise(exerciseId)
+    if (!found) return
+    found.exercise.catalog_id = catalog?.id ?? null
+    found.exercise.images = catalog?.images ?? []
+    enqueue('PATCH', `/exercises/${exerciseId}`, { catalog_id: found.exercise.catalog_id })
+  }
+
+  /** Copy a workout with its exercises and current loads (history starts fresh). */
+  function duplicateWorkout(workoutId: string) {
+    const source = workouts.value.find((item) => item.id === workoutId)
+    if (!source) return
+    const copy = addWorkout(`${source.name} (cópia)`)
+    for (const exercise of source.exercises) {
+      const duplicate: Exercise = { ...clone(exercise), id: crypto.randomUUID(), position: copy.exercises.length }
+      copy.exercises.push(duplicate)
+      enqueue('POST', `/workouts/${copy.id}/exercises`, {
+        id: duplicate.id,
+        name: duplicate.name,
+        sets: duplicate.sets,
+        notes: duplicate.notes,
+        rest_seconds: duplicate.rest_seconds,
+        catalog_id: duplicate.catalog_id,
+      })
+    }
+    return copy
   }
 
   function updateExercise(exerciseId: string, patch: Partial<Pick<Exercise, 'name' | 'notes' | 'rest_seconds'>>) {
@@ -184,7 +214,6 @@ export const useRoutineStore = defineStore('routine', () => {
     loaded,
     pending,
     unauthorized,
-    exerciseNames,
     init,
     reset,
     refresh,
@@ -195,6 +224,8 @@ export const useRoutineStore = defineStore('routine', () => {
     deleteWorkout,
     reorderWorkouts,
     addExercise,
+    linkExercise,
+    duplicateWorkout,
     updateExercise,
     moveExercise,
     setSets,

@@ -22,7 +22,6 @@ export const router = createRouter({
     { path: '/treino/:id/sessao', component: () => import('./views/SessionView.vue'), props: true },
     { path: '/sessao/:id', component: () => import('./views/SessionDetailView.vue'), props: true },
     { path: '/exercicio/:id', component: () => import('./views/ExerciseView.vue'), props: true },
-    { path: '/importar', component: () => import('./views/ImportView.vue') },
     { path: '/configuracoes', component: () => import('./views/SettingsView.vue'), meta: { tab: true } },
     { path: '/perfil', component: () => import('./views/ProfileView.vue'), meta: { tab: true } },
     { path: '/ajustes', redirect: '/configuracoes' },

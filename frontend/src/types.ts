@@ -10,6 +10,8 @@ export interface Exercise {
   notes: string
   rest_seconds: number | null
   sets: SetData[]
+  catalog_id: string | null
+  images: string[]
 }
 
 export type PlateColor = 'red' | 'blue' | 'yellow' | 'green' | 'white'
@@ -27,14 +29,6 @@ export interface HistoryPoint {
   sets: SetData[]
   max_weight_kg: number
   volume_kg: number
-}
-
-export interface ImportPreview {
-  workouts: {
-    name: string
-    existing_id: string | null
-    exercises: { name: string; sets: SetData[]; warning: string | null }[]
-  }[]
 }
 
 export interface User {
@@ -82,4 +76,28 @@ export interface ExerciseSessionPoint {
   session_id: string
   started_at: string
   sets: SetData[]
+}
+
+export type MuscleGroup =
+  | 'peito'
+  | 'costas'
+  | 'ombros'
+  | 'biceps'
+  | 'triceps'
+  | 'antebraco'
+  | 'pernas'
+  | 'gluteos'
+  | 'panturrilha'
+  | 'abdomen'
+
+/** An exercise from the library (or one of the user's own) offered by the picker. */
+export interface CatalogItem {
+  id: string
+  name: string
+  name_en: string
+  muscle_group: MuscleGroup
+  equipment: string
+  images: string[]
+  custom: boolean
+  uses: number
 }

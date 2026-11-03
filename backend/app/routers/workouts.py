@@ -8,7 +8,8 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.auth import CurrentUser
 from app.db import SessionDep
-from app.models import Exercise, ExerciseSet, User, Workout
+from app.routers.catalog import visible_catalog_id
+from app.models import CatalogExercise, Exercise, ExerciseSet, User, Workout
 from app.schemas import (
     PLATE_COLORS,
     ExerciseCreate,
@@ -34,7 +35,10 @@ def list_workouts(user: CurrentUser, session: SessionDep) -> list[Workout]:
         session.scalars(
             select(Workout)
             .where(Workout.user_id == user.id)
-            .options(selectinload(Workout.exercises).selectinload(Exercise.sets))
+            .options(
+                selectinload(Workout.exercises).selectinload(Exercise.sets),
+                selectinload(Workout.exercises).selectinload(Exercise.catalog),
+            )
             .order_by(Workout.position)
         )
     )
@@ -129,6 +133,7 @@ def create_exercise(
         name=payload.name,
         notes=payload.notes,
         rest_seconds=payload.rest_seconds,
+        catalog_id=visible_catalog_id(session, user, payload.catalog_id),
         position=len(workout.exercises),
         sets=_build_sets(payload.sets),
     )
@@ -145,13 +150,17 @@ def update_exercise(
     user: CurrentUser,
     session: SessionDep,
 ) -> Exercise:
-    """Update name, notes, rest time or move the exercise to another workout."""
+    """Update name, notes, rest time, library link or move the exercise to another workout."""
     exercise = _get_exercise(session, user, exercise_id)
     changes = payload.model_dump(exclude_unset=True)
     if "workout_id" in changes:
         target = _get_workout(session, user, changes.pop("workout_id"))
         exercise.workout_id = target.id
         exercise.position = len(target.exercises)
+    if "catalog_id" in changes:
+        catalog_id = visible_catalog_id(session, user, changes.pop("catalog_id"))
+        # Assign the object, not just the key, so the response shows the new photos.
+        exercise.catalog = session.get(CatalogExercise, catalog_id) if catalog_id else None
     for field_name, value in changes.items():
         setattr(exercise, field_name, value)
     return exercise

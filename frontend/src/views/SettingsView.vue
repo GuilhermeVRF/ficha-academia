@@ -68,7 +68,6 @@ async function importBackup(event: Event) {
 
     <section class="flex flex-col gap-2">
       <h2 class="text-sm font-medium text-muted">Dados</h2>
-      <RouterLink to="/importar" class="rounded-xl bg-surface px-4 py-3">Colar ficha em texto</RouterLink>
       <button type="button" class="rounded-xl bg-surface px-4 py-3 text-left" @click="exportBackup">
         Exportar backup (JSON)
       </button>

@@ -31,6 +31,18 @@ export default defineConfig({
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api\//, /^\/healthz/],
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        // Exercise photos come from the library's CDN; keep the ones already seen for offline use.
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/cdn\.jsdelivr\.net\/gh\/yuhonas\/free-exercise-db@/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'exercise-photos',
+              expiration: { maxEntries: 400, maxAgeSeconds: 60 * 60 * 24 * 365 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+        ],
       },
     }),
   ],

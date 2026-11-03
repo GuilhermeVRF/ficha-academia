@@ -58,7 +58,6 @@ function onReorder() {
       <button type="button" class="rounded-xl bg-accent px-5 py-3 font-semibold text-on-accent" @click="startCreation">
         Criar minha primeira ficha
       </button>
-      <RouterLink to="/importar" class="text-sm text-muted underline">ou colar uma ficha em texto</RouterLink>
     </section>
 
     <draggable

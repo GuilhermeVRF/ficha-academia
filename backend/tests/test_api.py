@@ -58,19 +58,6 @@ def test_should_drop_todays_snapshot_when_edit_is_reverted(session_factory: sess
         assert [snapshot.date for snapshot in exercise.snapshots] == [date(2026, 1, 1)]
 
 
-def test_should_import_text_into_named_and_default_workouts(client: TestClient, exercise_id: str) -> None:
-    text = "Crucifixo 3x12 14kg\nTreino B\nAgachamento 4x8 60kg"
-
-    preview = client.post("/api/import-text?dry_run=true", json={"text": text, "workout_id": "w1"}).json()
-    assert preview["workouts"][0]["existing_id"] == "w1"
-    assert len(client.get("/api/workouts").json()) == 1
-
-    client.post("/api/import-text", json={"text": text, "workout_id": "w1"})
-    tree = client.get("/api/workouts").json()
-    assert [workout["name"] for workout in tree] == ["A", "Treino B"]
-    assert [exercise["name"] for exercise in tree[0]["exercises"]] == ["Supino", "Crucifixo"]
-
-
 def test_should_round_trip_backup(client: TestClient, exercise_id: str) -> None:
     backup = client.get("/api/export").json()
     client.delete("/api/workouts/w1")

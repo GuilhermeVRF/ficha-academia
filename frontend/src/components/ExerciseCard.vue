@@ -64,8 +64,15 @@ function applyToAll() {
   <article class="rounded-2xl bg-surface p-3" :class="{ 'ring-1 ring-accent/40': allDone }">
     <header class="mb-2 flex items-center gap-2">
       <span class="drag-handle -ml-1 cursor-grab touch-none px-1 text-faint select-none" aria-label="Arrastar">⋮⋮</span>
-      <RouterLink :to="`/exercicio/${exercise.id}`" class="min-w-0 flex-1 truncate font-semibold text-fg">
-        {{ exercise.name }}
+      <RouterLink :to="`/exercicio/${exercise.id}`" class="flex min-w-0 flex-1 items-center gap-2">
+        <img
+          v-if="exercise.images[0]"
+          :src="exercise.images[0]"
+          alt=""
+          loading="lazy"
+          class="h-9 w-9 shrink-0 rounded-md bg-white object-cover"
+        />
+        <span class="truncate font-semibold text-fg">{{ exercise.name }}</span>
       </RouterLink>
       <span v-if="exercise.rest_seconds" class="text-xs text-subtle">⏱ {{ exercise.rest_seconds }}s</span>
       <RouterLink :to="`/exercicio/${exercise.id}`" class="px-1 text-subtle" aria-label="Detalhes">›</RouterLink>

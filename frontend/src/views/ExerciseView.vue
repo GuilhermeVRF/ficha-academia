@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import ExercisePicker from '@/components/ExercisePicker.vue'
 import HistoryChart from '@/components/HistoryChart.vue'
 import { request } from '@/lib/api'
 import { formatLongDate } from '@/lib/dates'
 import { formatSets } from '@/lib/format'
 import { useRoutineStore } from '@/stores/routine'
 import { useUiStore } from '@/stores/ui'
-import type { ExerciseSessionPoint, HistoryPoint } from '@/types'
+import type { CatalogItem, ExerciseSessionPoint, HistoryPoint } from '@/types'
 
 const props = defineProps<{ id: string }>()
 
@@ -19,6 +20,7 @@ const found = computed(() => routine.findExercise(props.id))
 const history = ref<HistoryPoint[] | null>(null)
 const historyError = ref(false)
 const sessions = ref<ExerciseSessionPoint[]>([])
+const linking = ref(false)
 
 onMounted(async () => {
   try {
@@ -41,6 +43,12 @@ function saveRest(event: Event) {
   const value = raw ? Math.max(0, Math.round(Number(raw))) : null
   if (!found.value || value === found.value.exercise.rest_seconds || Number.isNaN(value)) return
   routine.updateExercise(props.id, { rest_seconds: value })
+}
+
+function link(items: CatalogItem[]) {
+  linking.value = false
+  const [item] = items
+  if (item) routine.linkExercise(props.id, item)
 }
 
 function move(event: Event) {
@@ -71,8 +79,20 @@ function formatDate(isoDate: string) {
     <p v-if="!found" class="mt-10 text-center text-subtle">Exercício não encontrado.</p>
 
     <template v-else>
+      <figure v-if="found.exercise.images.length" class="photos relative mb-4 aspect-[4/3] max-w-full overflow-hidden rounded-2xl bg-white">
+        <img
+          v-for="(src, index) in found.exercise.images"
+          :key="src"
+          :src="src"
+          :alt="index === 0 ? `Posição inicial de ${found.exercise.name}` : `Posição final de ${found.exercise.name}`"
+          class="absolute inset-0 h-full w-full object-contain"
+          :class="index === 1 ? 'photo-end' : ''"
+        />
+      </figure>
+
       <input
         :value="found.exercise.name"
+        aria-label="Nome do exercício"
         class="w-full bg-transparent text-2xl font-bold outline-none"
         enterkeyhint="done"
         @blur="saveText('name', $event)"
@@ -142,9 +162,55 @@ function formatDate(isoDate: string) {
         </label>
       </section>
 
+      <section class="mt-6 flex flex-col gap-2">
+        <h2 class="text-sm font-medium text-muted">Biblioteca</h2>
+        <button type="button" class="rounded-xl bg-surface px-4 py-3 text-left" @click="linking = true">
+          {{ found.exercise.catalog_id ? 'Trocar foto (escolher outro da biblioteca)' : 'Adicionar foto (escolher na biblioteca)' }}
+        </button>
+        <button
+          v-if="found.exercise.catalog_id"
+          type="button"
+          class="rounded-xl px-4 py-2 text-left text-sm text-subtle"
+          @click="routine.linkExercise(props.id, null)"
+        >
+          Remover foto
+        </button>
+      </section>
+
       <button type="button" class="mt-10 w-full rounded-xl bg-danger/15 py-3 text-danger" @click="remove">
         Remover exercício
       </button>
     </template>
+
+    <ExercisePicker
+      v-if="linking"
+      title="Escolher na biblioteca"
+      :multiple="false"
+      @pick="link"
+      @pick-name="linking = false"
+      @close="linking = false"
+    />
   </div>
 </template>
+
+<style scoped>
+/* Start and end positions alternate, like a two-frame animation. */
+@media (prefers-reduced-motion: no-preference) {
+  .photo-end {
+    animation: alternate-photo 2.4s steps(1) infinite;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .photo-end {
+    display: none;
+  }
+}
+@keyframes alternate-photo {
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+</style>
